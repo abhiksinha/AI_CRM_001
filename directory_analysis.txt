@@ -1,0 +1,87 @@
+# Directory Structure Analysis
+
+This document outlines the directory structure of the ExpenseManagement project.
+
+## Project Root (`/media/abhishek/New Volume/Project/ExpenseManagement/`)
+
+```
+/media/abhishek/New Volume/Project/ExpenseManagement/
+├── cmd
+│   ├── config
+│   │   └── config.go
+│   ├── expenseApi
+│   │   └── main.go
+│   └── migrations
+│       └── main.go
+├── config
+│   └── default.toml
+├── internal
+│   ├── utils
+│   │   └── utils.go
+│   ├── migrations
+│   │   ├── 20250208124739_tnx_table.go
+│   │   ├── 20250206184026_users_table.go
+│   │   └── 20250208124115_password_table.go
+│   ├── txnService
+│   │   ├── repo
+│   │   │   └── repo.go
+│   │   ├── model
+│   │   │   └── model.go
+│   │   ├── service
+│   │   │   ├── option.go
+│   │   │   ├── service.go
+│   │   │   └── validation.go
+│   │   ├── contracts
+│   │   │   ├── request.go
+│   │   │   └── response.go
+│   │   └── server.go
+│   └── userService
+│       ├── repo
+│       │   └── repo.go
+│       ├── model
+│       │   └── model.go
+│       ├── service
+│       │   ├── option.go
+│       │   ├── service.go
+│       │   └── valdation.go
+│       ├── contracts
+│       │   ├── request.go
+│       │   └── response.go
+│       └── server.go
+├── packages
+│   ├── server
+│   │   ├── route.go
+│   │   ├── option.go
+│   │   └── server.go
+│   ├── database
+│   │   ├── gorm.go
+│   │   └── config.go
+│   └── middleware
+│       ├── jwtHandler.go
+│       └── AuthHandler.go
+├── go.mod
+├── go.sum
+├── .gitignore
+└── docker-compose.yml
+```
+
+## Analysis
+
+The project follows a standard Go application structure, with a clear separation of concerns.
+
+*   **`cmd`**: Contains the main entry points for the application's binaries.
+    *   `expenseApi`: The main API server.
+    *   `migrations`: A tool for running database migrations.
+*   **`config`**: Holds configuration files, such as `default.toml`.
+*   **`internal`**: This is the core of the application, containing business logic that is not meant to be imported by other projects.
+    *   `userService` and `txnService`: These are distinct services, each with its own `repo`, `model`, `service`, and `contracts` (for API requests/responses). This is a good example of a service-oriented architecture.
+    *   `migrations`: Contains the actual database migration files.
+*   **`packages`**: Contains shared code that can be used across the application.
+    *   `database`: For database connection and configuration.
+    *   `server`: For the web server setup.
+    *   `middleware`: For handling things like authentication.
+*   **`go.mod`**, **`go.sum`**: Manage the project's dependencies.
+*   **`.gitignore`**: Specifies which files and directories to ignore in version control.
+*   **`docker-compose.yml`**: For running the application and its dependencies in Docker containers.
+
+Overall, this is a well-organized project that should be easy to maintain and scale.
