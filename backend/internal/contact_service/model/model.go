@@ -1,9 +1,10 @@
 package model
 
 import (
-	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"CRM/packages/uniqueid" // Import the new package
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // Contact represents the contacts table in the database.
@@ -13,7 +14,7 @@ type Contact struct {
 	LastName  string `gorm:"type:varchar(255)"`
 	Email     string `gorm:"type:varchar(255);unique"`
 	Phone     string `gorm:"type:varchar(50)"`
-	OwnerID   string `gorm:"type:varchar(36)"` // Corrected from uuid.UUID to string
+	OwnerID   string `gorm:"type:varchar(36)"`
 	CreatedAt int64  `gorm:"not null"`
 	UpdatedAt int64  `gorm:"not null"`
 }
@@ -25,9 +26,11 @@ func (c *Contact) TableName() string {
 
 // BeforeCreate is a GORM hook that is called before a new record is created.
 func (c *Contact) BeforeCreate(tx *gorm.DB) (err error) {
+	// Generate a new 14-digit unique ID.
 	if c.ID == "" {
-		c.ID = uuid.New().String()
+		c.ID = uniqueid.New()
 	}
+
 	now := time.Now().Unix()
 	c.CreatedAt = now
 	c.UpdatedAt = now

@@ -47,8 +47,8 @@ func (s *ContactService) CreateContact(ctx context.Context, req contracts.Create
 		return nil, err
 	}
 
-	// Convert database model to API response.
-	response := repo.ToContactsApiResponse(newContact)
+	// Convert database model to API response using the repository method.
+	response := s.repo.ToContactsApiResponse(newContact)
 
 	log.Info("Successfully created contact", zap.String("contact_id", newContact.ID))
 	return response, nil
