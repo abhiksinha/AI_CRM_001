@@ -1,7 +1,8 @@
 package contact_service
 
 import (
-	"CRM/internal/contact_service/contracts" // Corrected import path
+	"CRM/internal/contact_service/contracts"
+	"CRM/internal/contact_service/service" // Import the new service package
 	"CRM/packages/public_response"
 	"encoding/json"
 	"net/http"
@@ -32,7 +33,13 @@ func (h *ContactHandlerServer) CreateContact(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// TODO: Add input validation.
+	// Validate the request.
+	if err := service.ValidateCreateContactRequest(req); err != nil {
+		// If validation fails, return a 400 Bad Request with the validation error message.
+		public_response.ToErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
+		return
+	}
+
 	// TODO: Add database logic to insert the new contact and get owner name.
 
 	// For now, create a dummy response using the new struct.

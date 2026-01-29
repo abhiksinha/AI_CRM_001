@@ -35,6 +35,10 @@ var statusCodeMap = map[error]int{
 	ErrDuplicateEntry: http.StatusConflict, // 409 Conflict is a good choice for duplicates
 }
 
+type ErrorPublicResponse struct {
+	Error ErrorResponse `json:"error"`
+}
+
 // ErrorResponse is the standard format for API error responses.
 type ErrorResponse struct {
 	Code        string `json:"code"`
@@ -62,10 +66,11 @@ func ToError(w http.ResponseWriter, err error) {
 func ToErrorResponse(w http.ResponseWriter, statusCode int, code, description string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(ErrorResponse{
-		Code:        code,
-		Description: description,
-	})
+	json.NewEncoder(w).Encode(
+		ErrorPublicResponse{ErrorResponse{
+			Code:        code,
+			Description: description,
+		}})
 }
 
 // ToServerError writes a generic 5xx server error response.
