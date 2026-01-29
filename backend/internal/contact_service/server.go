@@ -2,57 +2,54 @@ package contact_service
 
 import (
 	"CRM/internal/contact_service/contracts"
-	"CRM/internal/contact_service/service" // Import the new service package
+	"CRM/internal/contact_service/service"
 	"CRM/packages/public_response"
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
-// ContactHandlerServer holds the dependencies for the contact handlers, like a database connection.
+// ContactHandlerServer is the HTTP layer.
 type ContactHandlerServer struct {
-	// db *sql.DB
+	service *service.ContactService
 }
 
-// NewContactHandlerServer creates a new ContactHandler and registers its routes.
-func NewContactHandlerServer(mux *chi.Mux) *ContactHandlerServer {
-	s := &ContactHandlerServer{}
+// NewContactHandlerServer creates a new handler and registers its routes.
+func NewContactHandlerServer(mux *chi.Mux, svc *service.ContactService) *ContactHandlerServer {
+	s := &ContactHandlerServer{
+		service: svc,
+	}
 	RegisterRoutes(mux, s)
 	return s
 }
 
 // CreateContact handles the HTTP request to create a new contact.
 func (h *ContactHandlerServer) CreateContact(w http.ResponseWriter, r *http.Request) {
+	// Extract the context from the request.
+	ctx := r.Context()
+
 	var req contracts.CreateContactRequest
-	// Decode the JSON request body.
+	// 1. Decode the request.
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		public_response.ToError(w, public_response.ErrValidation)
 		return
 	}
 
-	// Validate the request.
+	// 2. Validate the request.
 	if err := service.ValidateCreateContactRequest(req); err != nil {
-		// If validation fails, return a 400 Bad Request with the validation error message.
 		public_response.ToErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
 		return
 	}
 
-	// TODO: Add database logic to insert the new contact and get owner name.
-
-	// For now, create a dummy response using the new struct.
-	response := contracts.CreateContactResponse{
-		ID:        uuid.New().String(), // Generate a new UUID for the contact.
-		Name:      req.FirstName + " " + req.LastName,
-		Email:     req.Email,
-		Phone:     req.Phone,
-		OwnerID:   req.OwnerID,
-		OwnerName: "Dummy Owner Name", // This would come from a DB join.
-		CreatedAt: time.Now(),
+	// 3. Delegate to the service layer, passing the context.
+	response, err := h.service.CreateContact(ctx, req)
+	if err != nil {
+		// 4. Let the error handler figure out the correct HTTP response.
+		public_response.ToError(w, err)
+		return
 	}
 
-	// Use the new helper to send a 201 Created response.
+	// 5. Send the successful response.
 	public_response.Created(w, response)
 }
