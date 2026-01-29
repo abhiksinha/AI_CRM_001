@@ -6,8 +6,10 @@ import (
 	"CRM/packages/logger"
 	"CRM/packages/public_response"
 	"context"
+	"errors"
 
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // ContactService encapsulates the business logic for the contact service.
@@ -31,10 +33,20 @@ func NewContactService(opts ...Option) *ContactService {
 
 // CreateContact contains the core logic for creating a new contact.
 func (s *ContactService) CreateContact(ctx context.Context, req contracts.CreateContactRequest) (*contracts.CreateContactResponse, error) {
-	// Create a logger with the request ID from the context.
 	log := logger.FromContext(ctx, s.logger)
 
-	// Convert request to database model.
+	// 1. Check for duplicates before starting a transaction.
+	existingContact, err := s.repo.GetByQuery(map[string]interface{}{"email": req.Email})
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		log.Error("Error checking for existing contact", zap.Error(err))
+		return nil, err
+	}
+	if existingContact != nil {
+		log.Warn("Attempted to create a duplicate contact", zap.String("email", req.Email))
+		return nil, public_response.ErrDuplicateEntry
+	}
+
+	// 2. Map the request to the database model.
 	newContact, err := repo.ToContactsDbModel(req)
 	if err != nil {
 		log.Error("Error converting to DB model", zap.Error(err))
@@ -42,12 +54,19 @@ func (s *ContactService) CreateContact(ctx context.Context, req contracts.Create
 	}
 
 	// Insert into the database.
-	if err := s.repo.CreateContact(newContact); err != nil {
-		log.Error("Error creating contact in DB", zap.Error(err))
+	err = s.repo.ExecTxn(ctx, func(repo *repo.Repository) error {
+		if err := s.repo.CreateContact(newContact); err != nil {
+			log.Error("Error creating contact in DB", zap.Error(err))
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
 		return nil, err
 	}
 
-	// Convert database model to API response using the repository method.
+	// 4. Convert the successful model to an API response.
 	response := s.repo.ToContactsApiResponse(newContact)
 
 	log.Info("Successfully created contact", zap.String("contact_id", newContact.ID))
