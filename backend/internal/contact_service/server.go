@@ -1,53 +1,38 @@
 package contact_service
 
 import (
-	// Import the generated RPC code
-	"context"
-	"time"
+	"CRM/internal/contact_service/contracts"
+	"CRM/packages/public_response" // Import the new package
+	"encoding/json"
+	"net/http"
 
-	"CRM/rpc/proto/contacts"
-
-	"github.com/google/uuid"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"github.com/go-chi/chi/v5"
 )
 
-// Server implements the ContactService gRPC service.
-type Server struct {
-	// This ensures we implement all methods of the interface,
-	// even if we haven't explicitly written them yet.
-	rpc.UnimplementedContactServiceServer
+// ContactHandlerServer holds the dependencies for the contact handlers, like a database connection.
+type ContactHandlerServer struct {
+	// db *sql.DB
 }
 
-// NewServer creates a new instance of the contact service server.
-func NewServer() *Server {
-	return &Server{}
+// NewContactHandlerServer creates a new ContactHandler and registers its routes.
+func NewContactHandlerServer(mux *chi.Mux) *ContactHandlerServer {
+	s := &ContactHandlerServer{}
+	RegisterRoutes(mux, s)
+	return s
 }
 
-// CreateContact is the implementation of the RPC method to create a new contact.
-func (s *Server) CreateContact(ctx context.Context, req *rpc.CreateContactRequest) (*rpc.CreateContactResponse, error) {
-	// TODO: Add database logic here to insert the new contact.
+// CreateContact handles the HTTP request to create a new contact.
+func (h *ContactHandlerServer) CreateContact(w http.ResponseWriter, r *http.Request) {
+	var req contracts.CreateContactRequest
+	// Decode the JSON request body.
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		public_response.ToError(w, public_response.ErrValidation)
+		return
+	}
+
 	// TODO: Add input validation.
+	// TODO: Add database logic to insert the new contact.
 
-	// For now, we'll return a hardcoded response to confirm the wiring is correct.
-	newID := uuid.New().String()
-	now := timestamppb.New(time.Now())
-
-	// Create a new contact object based on the request.
-	contact := &rpc.Contact{
-		Id:        newID,
-		FirstName: req.GetFirstName(),
-		LastName:  req.GetLastName(),
-		Email:     req.GetEmail(),
-		Phone:     req.GetPhone(),
-		OwnerId:   req.GetOwnerId(),
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-
-	// Create the response.
-	res := &rpc.CreateContactResponse{
-		Contact: contact,
-	}
-
-	return res, nil
+	// Use the new helper to send a 201 Created response.
+	public_response.Created(w, map[string]string{"message": "Contact created successfully"})
 }
