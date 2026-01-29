@@ -6,7 +6,6 @@ import (
 	"CRM/packages/logger"
 	"CRM/packages/public_response"
 	"context"
-
 	"go.uber.org/zap"
 )
 
@@ -16,12 +15,17 @@ type ContactService struct {
 	logger *zap.Logger
 }
 
-// NewContactService creates a new ContactService.
-func NewContactService(repo *repo.Repository, logger *zap.Logger) *ContactService {
-	return &ContactService{
-		repo:   repo,
-		logger: logger,
+// NewContactService creates a new ContactService by applying functional options.
+func NewContactService(opts ...Option) *ContactService {
+	// Create a new service with default values.
+	s := &ContactService{}
+
+	// Apply all the options.
+	for _, opt := range opts {
+		opt(s)
 	}
+
+	return s
 }
 
 // CreateContact contains the core logic for creating a new contact.

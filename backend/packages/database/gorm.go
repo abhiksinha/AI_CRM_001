@@ -6,9 +6,12 @@ import (
 	"log"
 )
 
-// NewGormDB creates a new GORM database instance.
-func NewGormDB(cfg Config) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(cfg.DSN), &gorm.Config{})
+// NewGormDB creates a new GORM database instance from a DBConfig.
+func NewGormDB(cfg DBConfig) (*gorm.DB, error) {
+	// Use the DSN method from the config struct.
+	dsn := cfg.DSN()
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 		return nil, err

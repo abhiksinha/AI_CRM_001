@@ -1,0 +1,17 @@
+[app]
+    env = "dev"
+    service_name = "AI_CRM_001"
+    host = "0.0.0.0"
+    port = "8080"
+
+[database]
+    dialect = "postgres"
+    host = "127.0.0.1"
+    port = 5432
+    username = "postgres"
+    password = "postgres"
+    ssl_mode = "disable"
+    name = "crm"
+    maxopenconns = 10
+    maxidleconns = 5
+    connmaxlifetime = 120 # in seconds
