@@ -1,12 +1,14 @@
 package contact_service
 
 import (
-	"CRM/internal/contact_service/contracts"
-	"CRM/packages/public_response" // Import the new package
+	"CRM/internal/contact_service/contracts" // Corrected import path
+	"CRM/packages/public_response"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 // ContactHandlerServer holds the dependencies for the contact handlers, like a database connection.
@@ -31,8 +33,19 @@ func (h *ContactHandlerServer) CreateContact(w http.ResponseWriter, r *http.Requ
 	}
 
 	// TODO: Add input validation.
-	// TODO: Add database logic to insert the new contact.
+	// TODO: Add database logic to insert the new contact and get owner name.
+
+	// For now, create a dummy response using the new struct.
+	response := contracts.CreateContactResponse{
+		ID:        uuid.New().String(), // Generate a new UUID for the contact.
+		Name:      req.FirstName + " " + req.LastName,
+		Email:     req.Email,
+		Phone:     req.Phone,
+		OwnerID:   req.OwnerID,
+		OwnerName: "Dummy Owner Name", // This would come from a DB join.
+		CreatedAt: time.Now(),
+	}
 
 	// Use the new helper to send a 201 Created response.
-	public_response.Created(w, map[string]string{"message": "Contact created successfully"})
+	public_response.Created(w, response)
 }
