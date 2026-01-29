@@ -8,6 +8,10 @@ import (
 	"log"
 	"os"
 
+	// Blank import for the migrations package.
+	// This is essential for goose to find and register your Go migrations.
+	_ "CRM/internal/migrations"
+
 	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/pressly/goose/v3"
 )
@@ -45,7 +49,6 @@ func main() {
 	}
 
 	// --- Run Migrations ---
-	// The directory where your .go migration files are located.
 	migrationsDir := "internal/migrations"
 
 	fmt.Printf("Running goose command '%s' on directory '%s'\n", command, migrationsDir)

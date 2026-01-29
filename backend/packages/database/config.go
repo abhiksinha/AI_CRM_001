@@ -3,17 +3,18 @@ package database
 import "fmt"
 
 // DBConfig holds all configuration required for connecting to the database.
+// The `mapstructure` tags ensure correct mapping from the TOML file.
 type DBConfig struct {
-	Dialect         string
-	Host            string
-	Port            int
-	Username        string
-	Password        string
-	SslMode         string
-	Name            string
-	MaxOpenConns    int
-	MaxIdleConns    int
-	ConnMaxLifetime int
+	Dialect         string `mapstructure:"dialect"`
+	Host            string `mapstructure:"host"`
+	Port            int    `mapstructure:"port"`
+	Username        string `mapstructure:"username"`
+	Password        string `mapstructure:"password"`
+	SslMode         string `mapstructure:"ssl_mode"`
+	Name            string `mapstructure:"name"`
+	MaxOpenConns    int    `mapstructure:"maxopenconns"`
+	MaxIdleConns    int    `mapstructure:"maxidleconns"`
+	ConnMaxLifetime int    `mapstructure:"connmaxlifetime"`
 }
 
 // DSN constructs the Data Source Name string for connecting to the database.

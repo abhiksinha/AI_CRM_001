@@ -3,6 +3,7 @@ package migrations
 import (
 	"context"
 	"database/sql"
+
 	"github.com/pressly/goose/v3"
 )
 
@@ -18,7 +19,7 @@ func upContactsTable(ctx context.Context, tx *sql.Tx) error {
 			last_name VARCHAR(255),
 			email VARCHAR(255) UNIQUE,
 			phone VARCHAR(50),
-			owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+			owner_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,
 			created_at BIGINT NOT NULL,
 			updated_at BIGINT NOT NULL
 		);

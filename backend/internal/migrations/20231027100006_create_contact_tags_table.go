@@ -3,7 +3,6 @@ package migrations
 import (
 	"context"
 	"database/sql"
-
 	"github.com/pressly/goose/v3"
 )
 
@@ -14,8 +13,8 @@ func init() {
 func upContactTagsTable(ctx context.Context, tx *sql.Tx) error {
 	_, err := tx.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS contact_tags (
-			contact_id UUID REFERENCES contacts(id) ON DELETE CASCADE,
-			tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
+			contact_id VARCHAR(36) REFERENCES contacts(id) ON DELETE CASCADE,
+			tag_id VARCHAR(36) REFERENCES tags(id) ON DELETE CASCADE,
 			PRIMARY KEY (contact_id, tag_id)
 		);
 	`)
