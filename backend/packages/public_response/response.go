@@ -6,21 +6,16 @@ import (
 	"net/http"
 )
 
+// --- Success Response Helpers ---
+
 // JSON sends a structured JSON response.
-// It takes a status code and a payload, which can be any serializable object.
+// It is also used by the error helpers in apierrors.go.
 func JSON(w http.ResponseWriter, statusCode int, payload interface{}) {
-	// Set the content type header.
 	w.Header().Set("Content-Type", "application/json")
-
-	// Write the status code.
 	w.WriteHeader(statusCode)
-
-	// Encode the payload.
 	if payload != nil {
 		if err := json.NewEncoder(w).Encode(payload); err != nil {
-			// If encoding fails, it's a server-side issue.
 			log.Printf("Failed to encode JSON response: %v", err)
-			// We can't send another response here as the header is already written.
 		}
 	}
 }

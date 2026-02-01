@@ -2,15 +2,15 @@ package main
 
 import (
 	"CRM/internal/contact_service"
+	"CRM/internal/contact_service/repo"
 	"CRM/internal/contact_service/service"
 	"CRM/packages/configloader"
 	"CRM/packages/database"
 	"CRM/packages/logger"
 	"CRM/packages/server"
 	"fmt"
-	"log"
-
 	"go.uber.org/zap"
+	"log"
 )
 
 func main() {
@@ -34,17 +34,13 @@ func main() {
 		appLogger.Fatal("failed to connect to database", zap.Error(err))
 	}
 
-	// --- Dependency Injection using Functional Options ---
-	// 1. Create the service using the With... option functions.
-	contactSvc := service.NewContactService(
-		service.WithRepo(db),
-		service.WithLogger(appLogger),
-	)
+	// --- Dependency Injection ---
+	contactRepo := repo.NewRepository(db)
+	notesRepo := repo.NewNotesRepository(db)
+	contactSvc := service.NewContactService(contactRepo, notesRepo, appLogger)
 
 	// --- Server Setup ---
 	srv := server.New()
-
-	// 2. Create the handler, injecting the fully configured service.
 	contact_service.NewContactHandlerServer(srv.Router(), contactSvc)
 
 	// Start the server.

@@ -5,9 +5,7 @@ import (
 )
 
 // RegisterRoutes creates a new router group for the v1 API and mounts the contact-related routes.
-// It takes a ContactHandler as a dependency to map routes to the actual handler methods.
 func RegisterRoutes(router *chi.Mux, handler *ContactHandlerServer) {
-	// Create a new router group for our /api/v1 endpoints.
 	v1 := chi.NewRouter()
 
 	// Here you can add middleware that applies only to this v1 group.
@@ -16,10 +14,18 @@ func RegisterRoutes(router *chi.Mux, handler *ContactHandlerServer) {
 	// Mount the routes for the 'contacts' resource.
 	v1.Route("/contacts", func(r chi.Router) {
 		r.Post("/", handler.CreateContact)
-		// r.Get("/", handler.ListContacts)
-		// r.Get("/{contactID}", handler.GetContact)
-		// r.Put("/{contactID}", handler.UpdateContact)
-		// r.Delete("/{contactID}", handler.DeleteContact)
+		r.Get("/", handler.ListContacts) // List all contacts for the owner
+
+		// Routes for a specific contact
+		r.Route("/{contactID}", func(r chi.Router) {
+			r.Get("/", handler.GetContact)
+			r.Put("/", handler.UpdateContact)
+			r.Delete("/", handler.DeleteContact)
+
+			// Routes for notes related to a specific contact
+			r.Post("/notes", handler.AddNote)
+			r.Get("/notes", handler.ListNotes)
+		})
 	})
 
 	// Mount the v1 router on the main router under the /api/v1 path.

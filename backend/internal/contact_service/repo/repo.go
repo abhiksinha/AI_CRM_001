@@ -20,12 +20,9 @@ func NewRepository(db *gorm.DB) *Repository {
 }
 
 // ExecTxn executes the given function within a database transaction.
-// If the function returns an error, the transaction is rolled back. Otherwise, it's committed.
 func (r *Repository) ExecTxn(ctx context.Context, fn func(repo *Repository) error) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Create a new repository instance that is bound to the transaction.
 		txnRepo := NewRepository(tx)
-		// Execute the provided function with the transactional repository.
 		return fn(txnRepo)
 	})
 }
@@ -37,10 +34,7 @@ type User struct {
 	LastName  string
 }
 
-// TableName explicitly sets the table name for the User model.
-func (u *User) TableName() string {
-	return "users"
-}
+func (u *User) TableName() string { return "users" }
 
 // --- Create Methods ---
 
@@ -50,30 +44,49 @@ func (r *Repository) CreateContact(contact *model.Contact) error {
 
 // --- Get Methods ---
 
-func (r *Repository) GetByID(id string) (*model.Contact, error) {
+func (r *Repository) GetByIDAndOwner(id, ownerID string) (*model.Contact, error) {
 	var contact model.Contact
-	if err := r.db.First(&contact, "id = ?", id).Error; err != nil {
-		return nil, err
+	err := r.db.First(&contact, "id = ? AND owner_id = ?", id, ownerID).Error
+	return &contact, err
+}
+
+func (r *Repository) ListByOwner(ownerID string, req contracts.ListContactsRequest) ([]model.Contact, int64, error) {
+	var contacts []model.Contact
+	var totalCount int64
+
+	query := r.db.Model(&model.Contact{}).Where("owner_id = ?", ownerID)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
 	}
-	return &contact, nil
+
+	offset := (req.Page - 1) * req.PageSize
+	query = query.Offset(offset).Limit(req.PageSize)
+
+	err := query.Find(&contacts).Error
+	return contacts, totalCount, err
 }
 
 func (r *Repository) GetByQuery(query map[string]interface{}) (*model.Contact, error) {
 	var contact model.Contact
-	if err := r.db.Where(query).First(&contact).Error; err != nil {
-		return nil, err
+	err := r.db.Where(query).First(&contact).Error
+	if contact.ID == "" {
+		return nil, gorm.ErrRecordNotFound
 	}
-	return &contact, nil
+	return &contact, err
 }
 
 // --- Update Methods ---
 
-func (r *Repository) UpdateByID(contact *model.Contact) error {
+func (r *Repository) UpdateContact(contact *model.Contact) error {
 	return r.db.Save(contact).Error
 }
 
-func (r *Repository) UpdateByQuery(query map[string]interface{}, values map[string]interface{}) error {
-	return r.db.Model(&model.Contact{}).Where(query).Updates(values).Error
+// --- Delete Methods ---
+
+func (r *Repository) DeleteByIDAndOwner(id, ownerID string) (int64, error) {
+	result := r.db.Where("id = ? AND owner_id = ?", id, ownerID).Delete(&model.Contact{})
+	return result.RowsAffected, result.Error
 }
 
 // --- Mappers ---
@@ -88,7 +101,7 @@ func ToContactsDbModel(req contracts.CreateContactRequest) (*model.Contact, erro
 	}, nil
 }
 
-func (r *Repository) ToContactsApiResponse(contact *model.Contact) *contracts.CreateContactResponse {
+func (r *Repository) ToContactsApiResponse(contact *model.Contact) *contracts.ContactResponse {
 	var owner User
 	ownerName := "Unknown"
 
@@ -98,7 +111,7 @@ func (r *Repository) ToContactsApiResponse(contact *model.Contact) *contracts.Cr
 		log.Printf("Could not find owner with ID %s: %v", contact.OwnerID, err)
 	}
 
-	return &contracts.CreateContactResponse{
+	return &contracts.ContactResponse{
 		ID:        contact.ID,
 		Name:      contact.FirstName + " " + contact.LastName,
 		Email:     contact.Email,
@@ -106,5 +119,6 @@ func (r *Repository) ToContactsApiResponse(contact *model.Contact) *contracts.Cr
 		OwnerID:   contact.OwnerID,
 		OwnerName: ownerName,
 		CreatedAt: contact.CreatedAt,
+		UpdatedAt: contact.UpdatedAt,
 	}
 }

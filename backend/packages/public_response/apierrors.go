@@ -1,14 +1,14 @@
 package public_response
 
 import (
-	"encoding/json"
+	_ "encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 )
 
 // --- Standard Application Errors ---
-// These errors can be returned from business logic layers.
 var (
 	ErrNotFound       = errors.New("resource not found")
 	ErrValidation     = errors.New("validation failed")
@@ -16,6 +16,16 @@ var (
 	ErrForbidden      = errors.New("forbidden")
 	ErrDuplicateEntry = errors.New("duplicate entry")
 )
+
+// DuplicateEntryError is a custom error type that includes the ID of the conflicting user.
+type DuplicateEntryError struct {
+	UserID string
+}
+
+// Error makes DuplicateEntryError conform to the error interface.
+func (e *DuplicateEntryError) Error() string {
+	return fmt.Sprintf("the customer is already assigned to user id: %s", e.UserID)
+}
 
 // errorMap maps our standard Go errors to the user-facing ErrorResponse.
 var errorMap = map[error]ErrorResponse{
@@ -32,11 +42,7 @@ var statusCodeMap = map[error]int{
 	ErrValidation:     http.StatusBadRequest,
 	ErrUnauthorized:   http.StatusUnauthorized,
 	ErrForbidden:      http.StatusForbidden,
-	ErrDuplicateEntry: http.StatusConflict, // 409 Conflict is a good choice for duplicates
-}
-
-type ErrorPublicResponse struct {
-	Error ErrorResponse `json:"error"`
+	ErrDuplicateEntry: http.StatusConflict,
 }
 
 // ErrorResponse is the standard format for API error responses.
@@ -46,36 +52,34 @@ type ErrorResponse struct {
 }
 
 // ToError inspects a Go error and writes the appropriate API error response.
-// It uses the predefined error maps to find the correct HTTP status and response body.
-// If the error is not in the map, it defaults to a 500 Internal Server Error.
 func ToError(w http.ResponseWriter, err error) {
-	// We iterate because the incoming error might be wrapped (e.g., using fmt.Errorf).
+	// Check for our specific DuplicateEntryError first.
+	var dupErr *DuplicateEntryError
+	if errors.As(err, &dupErr) {
+		ToErrorResponse(w, http.StatusConflict, "duplicate_entry", dupErr.Error())
+		return
+	}
+
+	// Fall back to the standard error map.
 	for key, apiErr := range errorMap {
 		if errors.Is(err, key) {
 			statusCode := statusCodeMap[key]
-			ToErrorResponse(w, statusCode, apiErr.Code, apiErr.Description)
+			JSON(w, statusCode, apiErr)
 			return
 		}
 	}
-
-	// If the error is not found in our map, it's an unexpected error.
+	// If no match, it's an unexpected internal error.
 	ToServerError(w, err)
 }
 
 // ToErrorResponse writes a standard client-facing error response.
 func ToErrorResponse(w http.ResponseWriter, statusCode int, code, description string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(
-		ErrorPublicResponse{ErrorResponse{
-			Code:        code,
-			Description: description,
-		}})
+	JSON(w, statusCode, ErrorResponse{Code: code, Description: description})
 }
 
 // ToServerError writes a generic 5xx server error response.
-// It logs the actual error but returns a generic message to the client.
 func ToServerError(w http.ResponseWriter, err error) {
 	log.Printf("Internal server error: %v", err)
-	ToErrorResponse(w, http.StatusInternalServerError, "internal_server_error", "An unexpected error occurred.")
+	errorResponse := ErrorResponse{Code: "internal_server_error", Description: "An unexpected error occurred."}
+	JSON(w, http.StatusInternalServerError, errorResponse)
 }
