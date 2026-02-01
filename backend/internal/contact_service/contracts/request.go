@@ -1,12 +1,12 @@
 package contracts
 
 // ListContactsRequest defines the query parameters for listing contacts.
-// These will be read from the URL query string, not a JSON body.
+// The `schema` tag is used by the gorilla/schema decoder.
 type ListContactsRequest struct {
-	Page     int    `form:"page"`
-	PageSize int    `form:"page_size"`
-	SortBy   string `form:"sort_by"` // e.g., "created_at_desc"
-	Query    string `form:"query"`   // For full-text search
+	Page     int    `schema:"page"`
+	PageSize int    `schema:"page_size"`
+	SortBy   string `schema:"sort_by"`
+	Query    string `schema:"query"`
 }
 
 // CreateContactRequest defines the expected JSON body for a create contact request.
@@ -19,8 +19,6 @@ type CreateContactRequest struct {
 }
 
 // UpdateContactRequest defines the expected JSON body for an update contact request.
-// Pointers are used to distinguish between a field that is intentionally set to an empty value
-// and a field that is not being updated at all.
 type UpdateContactRequest struct {
 	FirstName *string `json:"first_name"`
 	LastName  *string `json:"last_name"`
