@@ -1,12 +1,11 @@
 package contracts
 
 // ListContactsRequest defines the query parameters for listing contacts.
-// The `schema` tag is used by the gorilla/schema decoder.
 type ListContactsRequest struct {
 	Page     int    `schema:"page"`
 	PageSize int    `schema:"page_size"`
 	SortBy   string `schema:"sort_by"`
-	Query    string `schema:"query"`
+	// A generic 'query' parameter has been removed in favor of specific filters if needed later.
 }
 
 // CreateContactRequest defines the expected JSON body for a create contact request.
