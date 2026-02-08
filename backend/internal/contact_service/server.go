@@ -19,11 +19,11 @@ type ContactHandlerServer struct {
 }
 
 // NewContactHandlerServer creates a new handler and registers its routes.
-func NewContactHandlerServer(mux *chi.Mux, svc *service.ContactService) *ContactHandlerServer {
+func NewContactHandlerServer(router chi.Router, svc *service.ContactService) *ContactHandlerServer {
 	s := &ContactHandlerServer{
 		service: svc,
 	}
-	RegisterRoutes(mux, s)
+	RegisterRoutes(router, s)
 	return s
 }
 

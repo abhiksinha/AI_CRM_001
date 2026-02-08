@@ -17,9 +17,9 @@ type UserHandlerServer struct {
 	service *service.UserService
 }
 
-func NewUserHandlerServer(mux *chi.Mux, svc *service.UserService) *UserHandlerServer {
+func NewUserHandlerServer(router chi.Router, svc *service.UserService) *UserHandlerServer {
 	s := &UserHandlerServer{service: svc}
-	RegisterRoutes(mux, s)
+	RegisterRoutes(router, s)
 	return s
 }
 

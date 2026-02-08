@@ -1,12 +1,9 @@
 package user_service
 
-import (
-	"github.com/go-chi/chi/v5"
-)
+import "github.com/go-chi/chi/v5"
 
-func RegisterRoutes(router *chi.Mux, handler *UserHandlerServer) {
-	v1 := chi.NewRouter()
-	v1.Route("/users", func(r chi.Router) {
+func RegisterRoutes(router chi.Router, handler *UserHandlerServer) {
+	router.Route("/users", func(r chi.Router) {
 		r.Post("/", handler.CreateUser)
 		r.Get("/", handler.ListUsers)
 		r.Post("/verify-password", handler.VerifyPassword)
@@ -22,5 +19,4 @@ func RegisterRoutes(router *chi.Mux, handler *UserHandlerServer) {
 			r.Delete("/", handler.DeleteUser)
 		})
 	})
-	router.Mount("/api/v1", v1)
 }

@@ -17,9 +17,9 @@ type DealHandlerServer struct {
 	service *service.DealService
 }
 
-func NewDealHandlerServer(mux *chi.Mux, svc *service.DealService) *DealHandlerServer {
+func NewDealHandlerServer(router chi.Router, svc *service.DealService) *DealHandlerServer {
 	s := &DealHandlerServer{service: svc}
-	RegisterRoutes(mux, s)
+	RegisterRoutes(router, s)
 	return s
 }
 

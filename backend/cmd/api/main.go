@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -59,9 +60,11 @@ func main() {
 
 	// --- Server Setup ---
 	srv := server.New()
-	contactServer.NewContactHandlerServer(srv.Router(), contactSvc)
-	dealServer.NewDealHandlerServer(srv.Router(), dealSvc)
-	userServer.NewUserHandlerServer(srv.Router(), userSvc)
+	v1 := chi.NewRouter()
+	srv.Router().Mount("/api/v1", v1)
+	contactServer.NewContactHandlerServer(v1, contactSvc)
+	dealServer.NewDealHandlerServer(v1, dealSvc)
+	userServer.NewUserHandlerServer(v1, userSvc)
 
 	// Start the server.
 	serverPort := fmt.Sprintf(":%s", cfg.App.Port)
