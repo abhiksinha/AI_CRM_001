@@ -23,6 +23,7 @@ type ListUsersRequest struct {
 	Page     int    `schema:"page"`
 	PageSize int    `schema:"page_size"`
 	Role     string `schema:"role"`
+	Email    string `schema:"email"`
 }
 
 // CreateUserRequest defines the JSON body for creating a new user.

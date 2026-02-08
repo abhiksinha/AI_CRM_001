@@ -48,6 +48,7 @@ func ValidateListUsersRequest(req contracts.ListUsersRequest) error {
 		validation.Field(&req.Page, validation.Min(1).Error("page must be greater than 0")),
 		validation.Field(&req.PageSize, validation.Min(1).Error("page_size must be greater than 0")),
 		validation.Field(&req.Role, validation.When(req.Role != "", validation.In("admin", "user").Error("role must be 'admin' or 'user'"))),
+		validation.Field(&req.Email, validation.When(req.Email != "", is.EmailFormat.Error("email must be a valid email"))),
 	)
 }
 func ValidateVerifyPasswordRequest(req contracts.VerifyPasswordRequest) error {

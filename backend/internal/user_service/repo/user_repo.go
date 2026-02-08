@@ -46,6 +46,9 @@ func (r *UserRepository) List(req contracts.ListUsersRequest) ([]model.User, int
 	if req.Role != "" {
 		query = query.Where("role = ?", req.Role)
 	}
+	if req.Email != "" {
+		query = query.Where("email = ?", req.Email)
+	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, 0, err
