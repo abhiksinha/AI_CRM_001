@@ -281,3 +281,45 @@ Deletes a user by their ID.
 ```sh
 curl --location --request DELETE 'http://127.0.0.1:8080/api/v1/users/{userID}'
 ```
+
+### 21. Create an API Key
+
+Generates a new, unique API key for a user. A user can only have one active key at a time.
+
+**Endpoint:** `POST /api/v1/users/api-keys`
+
+```sh
+curl --location 'http://127.0.0.1:8080/api/v1/users/api-keys' \
+--header 'Content-Type: application/json' \
+--data '{
+    "user_id": "ABHISHEKSINHA1"
+}'
+```
+
+### 22. Match an API Key
+
+Verifies if an API key is valid and active. This is a key part of an authentication middleware.
+
+**Endpoint:** `POST /api/v1/users/api-keys/match`
+
+```sh
+curl --location 'http://127.0.0.1:8080/api/v1/users/api-keys/match' \
+--header 'Content-Type: application/json' \
+--data '{
+    "api_key": "THE_API_KEY_RETURNED_FROM_CREATE"
+}'
+```
+
+### 23. Expire an API Key
+
+Deactivates (soft-deletes) an API key, rendering it invalid.
+
+**Endpoint:** `DELETE /api/v1/users/api-keys`
+
+```sh
+curl --location --request DELETE 'http://127.0.0.1:8080/api/v1/users/api-keys' \
+--header 'Content-Type: application/json' \
+--data '{
+    "api_key": "THE_API_KEY_TO_EXPIRE"
+}'
+```
