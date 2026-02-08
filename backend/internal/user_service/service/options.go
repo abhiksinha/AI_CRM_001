@@ -15,6 +15,12 @@ func WithUserRepo(db *gorm.DB) Option {
 	}
 }
 
+func WithApiKeyRepo(db *gorm.DB) Option {
+	return func(s *UserService) {
+		s.apiKeyRepo = repo.NewApiKeyRepository(db)
+	}
+}
+
 func WithLogger(logger *zap.Logger) Option {
 	return func(s *UserService) {
 		s.logger = logger

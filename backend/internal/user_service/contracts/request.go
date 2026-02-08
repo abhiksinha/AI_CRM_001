@@ -7,20 +7,8 @@ import (
 // Password is a custom type to prevent accidental logging of plain text passwords.
 type Password string
 
-// String implements the fmt.Stringer interface.
-// This is automatically called by most logging libraries (like zap) and fmt.Println.
-func (p Password) String() string {
-	return "[REDACTED]"
-}
-
-// MarshalJSON implements the json.Marshaler interface.
-// This ensures the password is sent as a plain string in JSON requests.
-func (p Password) MarshalJSON() ([]byte, error) {
-	return json.Marshal(string(p))
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-// This allows the password to be read as a plain string from JSON requests.
+func (p Password) String() string               { return "[REDACTED]" }
+func (p Password) MarshalJSON() ([]byte, error) { return json.Marshal(string(p)) }
 func (p *Password) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -42,7 +30,7 @@ type CreateUserRequest struct {
 	FirstName string   `json:"first_name"`
 	LastName  string   `json:"last_name"`
 	Email     string   `json:"email"`
-	Password  Password `json:"password"` // Use the new Password type
+	Password  Password `json:"password"`
 	Role      string   `json:"role"`
 }
 
@@ -57,5 +45,20 @@ type UpdateUserRequest struct {
 // VerifyPasswordRequest defines the JSON body for the password verification endpoint.
 type VerifyPasswordRequest struct {
 	ID       string   `json:"id"`
-	Password Password `json:"password"` // Use the new Password type
+	Password Password `json:"password"`
+}
+
+// CreateApiKeyRequest defines the JSON body for creating an API key.
+type CreateApiKeyRequest struct {
+	UserID string `json:"user_id"`
+}
+
+// MatchApiKeyRequest defines the JSON body for matching an API key.
+type MatchApiKeyRequest struct {
+	ApiKey string `json:"api_key"`
+}
+
+// ExpireApiKeyRequest defines the JSON body for expiring an API key.
+type ExpireApiKeyRequest struct {
+	ApiKey string `json:"api_key"`
 }
