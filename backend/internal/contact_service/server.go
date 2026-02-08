@@ -38,6 +38,11 @@ func (h *ContactHandlerServer) CreateContact(w http.ResponseWriter, r *http.Requ
 		public_response.ToError(w, public_response.ErrValidation)
 		return
 	}
+	req.OwnerID = getOwnerID(r)
+	if req.OwnerID == "" {
+		public_response.ToError(w, public_response.ErrUnauthorized)
+		return
+	}
 	if err := service.ValidateCreateContactRequest(req); err != nil {
 		public_response.ToErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
 		return
