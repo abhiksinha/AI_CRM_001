@@ -6,11 +6,14 @@ import (
 	"edge/internal/edge_service/service"
 	"edge/packages/httpRequest"
 	"edge/packages/public_response"
+	edgeredis "edge/packages/redis"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -21,6 +24,11 @@ type EdgeHandlerServer struct {
 	routeConfig     map[string]RouteConfig
 	backendServices map[string]string
 }
+
+const (
+	loginRateLimitPerMin = 5
+	tokenRateLimitPerMin = 10
+)
 
 func NewEdgeHandlerServer(mux *chi.Mux, authSvc *service.AuthService, proxySvc *service.ProxyService, routeConfig map[string]RouteConfig, backendServices map[string]string) *EdgeHandlerServer {
 	s := &EdgeHandlerServer{authService: authSvc, proxyService: proxySvc, routeConfig: routeConfig, backendServices: backendServices}
@@ -33,6 +41,10 @@ func (h *EdgeHandlerServer) Login(w http.ResponseWriter, r *http.Request) {
 	var req contracts.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		public_response.ToError(w, public_response.ErrValidation)
+		return
+	}
+
+	if !h.applyRateLimit(w, r, "login", req.Username, loginRateLimitPerMin) {
 		return
 	}
 
@@ -118,6 +130,10 @@ func (h *EdgeHandlerServer) GetToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !h.applyRateLimit(w, r, "token", req.APIKey, tokenRateLimitPerMin) {
+		return
+	}
+
 	response, err := h.authService.GetToken(ctx, req)
 	if err != nil {
 		if httpErr, ok := err.(*httpRequest.HTTPError); ok {
@@ -134,6 +150,34 @@ func (h *EdgeHandlerServer) GetToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	public_response.OK(w, response)
+}
+
+func (h *EdgeHandlerServer) applyRateLimit(w http.ResponseWriter, r *http.Request, action, identifier string, limit int64) bool {
+	ip := clientIP(r)
+	keyRaw := fmt.Sprintf("rl:%s:%s:%s", action, strings.ToLower(strings.TrimSpace(identifier)), ip)
+	key := "rl:" + edgeredis.HashValue(keyRaw)
+	ok, err := h.authService.AllowRate(r.Context(), key, limit, time.Minute)
+	if err != nil {
+		public_response.ToServerError(w, err)
+		return false
+	}
+	if !ok {
+		public_response.ToErrorResponse(w, http.StatusTooManyRequests, "rate_limited", "Too many requests. Please try again later.")
+		return false
+	}
+	return true
+}
+
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		parts := strings.Split(xff, ",")
+		return strings.TrimSpace(parts[0])
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 func (h *EdgeHandlerServer) Proxy(w http.ResponseWriter, r *http.Request) {

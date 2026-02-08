@@ -33,7 +33,7 @@ func NewProxyService(redisClient *goredis.Client, logger *zap.Logger) *ProxyServ
 }
 
 func (s *ProxyService) VerifyToken(ctx context.Context, token string) (string, error) {
-	tokenKey := fmt.Sprintf("auth:token:%s", token)
+	tokenKey := fmt.Sprintf("auth:token:%s", edgeredis.HashValue(token))
 	data, err := s.redis.HGetAll(ctx, tokenKey).Result()
 	if err != nil {
 		return "", err

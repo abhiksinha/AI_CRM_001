@@ -12,11 +12,12 @@ import (
 func PersistSession(ctx context.Context, client *goredis.Client, userID, sessionID, apiToken string, ttl time.Duration) error {
 	sessionSetKey := fmt.Sprintf("auth:sessions:%s", userID)
 	sessionKey := fmt.Sprintf("auth:session:%s", sessionID)
-	tokenKey := fmt.Sprintf("auth:token:%s", apiToken)
+	tokenHash := HashValue(apiToken)
+	tokenKey := fmt.Sprintf("auth:token:%s", tokenHash)
 
 	pipe := client.TxPipeline()
 	pipe.SAdd(ctx, sessionSetKey, sessionID)
-	pipe.Set(ctx, sessionKey, apiToken, ttl)
+	pipe.Set(ctx, sessionKey, tokenHash, ttl)
 	pipe.HSet(ctx, tokenKey, map[string]string{
 		"user_id":    userID,
 		"session_id": sessionID,
@@ -31,7 +32,7 @@ func PersistSession(ctx context.Context, client *goredis.Client, userID, session
 func ClearSession(ctx context.Context, client *goredis.Client, userID, sessionID, apiToken string) error {
 	sessionSetKey := fmt.Sprintf("auth:sessions:%s", userID)
 	sessionKey := fmt.Sprintf("auth:session:%s", sessionID)
-	tokenKey := fmt.Sprintf("auth:token:%s", apiToken)
+	tokenKey := fmt.Sprintf("auth:token:%s", HashValue(apiToken))
 
 	pipe := client.TxPipeline()
 	pipe.Del(ctx, tokenKey)
@@ -68,7 +69,7 @@ func ActiveSessions(ctx context.Context, client *goredis.Client, userID string) 
 // ExpireSessionByID removes a session by ID if it exists.
 func ExpireSessionByID(ctx context.Context, client *goredis.Client, sessionID string) error {
 	sessionKey := fmt.Sprintf("auth:session:%s", sessionID)
-	apiToken, err := client.Get(ctx, sessionKey).Result()
+	tokenHash, err := client.Get(ctx, sessionKey).Result()
 	if err != nil {
 		if err == goredis.Nil {
 			return nil
@@ -76,7 +77,7 @@ func ExpireSessionByID(ctx context.Context, client *goredis.Client, sessionID st
 		return err
 	}
 
-	tokenKey := fmt.Sprintf("auth:token:%s", apiToken)
+	tokenKey := fmt.Sprintf("auth:token:%s", tokenHash)
 	data, err := client.HGetAll(ctx, tokenKey).Result()
 	if err != nil {
 		return err
@@ -86,13 +87,18 @@ func ExpireSessionByID(ctx context.Context, client *goredis.Client, sessionID st
 		return nil
 	}
 
-	return ClearSession(ctx, client, userID, sessionID, apiToken)
+	pipe := client.TxPipeline()
+	pipe.Del(ctx, tokenKey)
+	pipe.Del(ctx, sessionKey)
+	pipe.SRem(ctx, fmt.Sprintf("auth:sessions:%s", userID), sessionID)
+	_, err = pipe.Exec(ctx)
+	return err
 }
 
 // RefreshSessionTTL refreshes session-related keys to the provided TTL.
 func RefreshSessionTTL(ctx context.Context, client *goredis.Client, userID, sessionID, apiToken string, ttl time.Duration) {
 	sessionKey := fmt.Sprintf("auth:session:%s", sessionID)
-	tokenKey := fmt.Sprintf("auth:token:%s", apiToken)
+	tokenKey := fmt.Sprintf("auth:token:%s", HashValue(apiToken))
 	sessionSetKey := fmt.Sprintf("auth:sessions:%s", userID)
 
 	pipe := client.TxPipeline()

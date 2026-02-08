@@ -39,6 +39,10 @@ func NewAuthService(redisClient *goredis.Client, userServiceBase string, logger 
 	}
 }
 
+func (s *AuthService) AllowRate(ctx context.Context, key string, limit int64, window time.Duration) (bool, error) {
+	return edgeredis.AllowRate(ctx, s.redis, key, limit, window)
+}
+
 func (s *AuthService) Login(ctx context.Context, req contracts.LoginRequest) (*contracts.LoginResponse, error) {
 	if strings.TrimSpace(req.Username) == "" || strings.TrimSpace(string(req.Password)) == "" {
 		return nil, public_response.ErrValidation

@@ -52,6 +52,15 @@ The token is validated in Redis. If valid, the proxy injects:
 X-User-ID: <user_id>
 ```
 
+### Token Storage
+
+Tokens are stored as SHA-256 hashes in Redis. The raw token is only returned to the client.
+
+### Rate Limits
+
+- `/v1/login`: 5 requests per minute (per username + IP)
+- `/v1/token`: 10 requests per minute (per api_key + IP)
+
 ### Session Limit
 
 Max 3 active sessions per user. The limit applies to:
