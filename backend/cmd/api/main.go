@@ -3,9 +3,11 @@ package main
 import (
 	contactServer "CRM/internal/contact_service"
 	contactrepo "CRM/internal/contact_service/repo"
-	contactservice "CRM/internal/contact_service/service"
+	contact_service "CRM/internal/contact_service/service"
 	dealServer "CRM/internal/deal_service"
-	dealservice "CRM/internal/deal_service/service"
+	deal_service "CRM/internal/deal_service/service"
+	userServer "CRM/internal/user_service"
+	user_service "CRM/internal/user_service/service"
 	"CRM/packages/configloader"
 	"CRM/packages/database"
 	"CRM/packages/logger"
@@ -38,22 +40,26 @@ func main() {
 	}
 
 	// --- Dependency Injection ---
-	// Contact Service
 	contactRepo := contactrepo.NewRepository(db)
 	notesRepo := contactrepo.NewNotesRepository(db)
-	contactSvc := contactservice.NewContactService(contactRepo, notesRepo, appLogger)
+	contactSvc := contact_service.NewContactService(contactRepo, notesRepo, appLogger)
 
-	// Deal Service
-	dealSvc := dealservice.NewDealService(
-		dealservice.WithDealRepo(db),
-		dealservice.WithTaskRepo(db),
-		dealservice.WithLogger(appLogger),
+	dealSvc := deal_service.NewDealService(
+		deal_service.WithDealRepo(db),
+		deal_service.WithTaskRepo(db),
+		deal_service.WithLogger(appLogger),
+	)
+
+	userSvc := user_service.NewUserService(
+		user_service.WithUserRepo(db),
+		user_service.WithLogger(appLogger),
 	)
 
 	// --- Server Setup ---
 	srv := server.New()
 	contactServer.NewContactHandlerServer(srv.Router(), contactSvc)
-	dealServer.NewDealHandlerServer(srv.Router(), dealSvc) // Register the new handler
+	dealServer.NewDealHandlerServer(srv.Router(), dealSvc)
+	userServer.NewUserHandlerServer(srv.Router(), userSvc) // Register the new handler
 
 	// Start the server.
 	serverPort := fmt.Sprintf(":%s", cfg.App.Port)
