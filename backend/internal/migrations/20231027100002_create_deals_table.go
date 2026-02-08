@@ -14,15 +14,15 @@ func init() {
 func upDealsTable(ctx context.Context, tx *sql.Tx) error {
 	_, err := tx.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS deals (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			id VARCHAR(36) PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,
 			stage VARCHAR(100) NOT NULL,
-			val DECIMAL,
+			value DECIMAL,
 			expected_close_date DATE,
-			contact_id UUID REFERENCES contacts(id) ON DELETE CASCADE,
-			owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+			contact_id VARCHAR(36) REFERENCES contacts(id) ON DELETE CASCADE,
+			owner_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,
+			created_at BIGINT NOT NULL,
+			updated_at BIGINT NOT NULL
 		);
 	`)
 	return err

@@ -3,7 +3,6 @@ package migrations
 import (
 	"context"
 	"database/sql"
-
 	"github.com/pressly/goose/v3"
 )
 
@@ -14,7 +13,7 @@ func init() {
 func upTagsTable(ctx context.Context, tx *sql.Tx) error {
 	_, err := tx.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS tags (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			id VARCHAR(36) PRIMARY KEY,
 			name VARCHAR(100) UNIQUE NOT NULL
 		);
 	`)
