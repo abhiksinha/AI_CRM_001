@@ -34,6 +34,20 @@ This service manages sales opportunities and pipelines.
 *   **`POST /api/v1/deals/{id}/tasks`**: Create a task associated with a deal (e.g., "Follow up call").
 *   **`GET /api/v1/deals/{id}/tasks`**: List all tasks for a deal.
 
+### UserService (Resource: `/users`) - Implemented
+
+This service manages internal users of the CRM, their credentials, and API keys.
+
+*   **`POST /api/v1/users`**: Create a new user.
+*   **`GET /api/v1/users`**: List all users (with pagination and filtering).
+*   **`GET /api/v1/users/{id}`**: Get details of a single user.
+*   **`PUT /api/v1/users/{id}`**: Update a user's details.
+*   **`DELETE /api/v1/users/{id}`**: Delete a user.
+*   **`POST /api/v1/users/verify-password`**: Securely check if a user's password is correct.
+*   **`POST /api/v1/users/api-keys`**: Generate a new API key for a user.
+*   **`POST /api/v1/users/api-keys/match`**: Verify if an API key is valid.
+*   **`DELETE /api/v1/users/api-keys`**: Expire (soft-delete) an API key.
+
 ---
 
 ## 2. Background Workers & Cron Jobs
