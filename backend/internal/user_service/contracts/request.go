@@ -2,7 +2,6 @@ package contracts
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 // Password is a custom type to prevent accidental logging of plain text passwords.
