@@ -17,3 +17,10 @@ type ListUsersResponse struct {
 	Data       []UserResponse `json:"data"`
 	TotalCount int64          `json:"total_count"`
 }
+
+// ApiKeyResponse is the standard response for API key operations.
+type ApiKeyResponse struct {
+	ID        string `json:"id"`
+	UserID    string `json:"user_id"`
+	CreatedAt int64  `json:"created_at"`
+}

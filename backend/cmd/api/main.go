@@ -50,8 +50,10 @@ func main() {
 		deal_service.WithLogger(appLogger),
 	)
 
+	// Correctly initialize the user service with all its dependencies
 	userSvc := user_service.NewUserService(
 		user_service.WithUserRepo(db),
+		user_service.WithApiKeyRepo(db), // Add the new ApiKeyRepository
 		user_service.WithLogger(appLogger),
 	)
 
@@ -59,7 +61,7 @@ func main() {
 	srv := server.New()
 	contactServer.NewContactHandlerServer(srv.Router(), contactSvc)
 	dealServer.NewDealHandlerServer(srv.Router(), dealSvc)
-	userServer.NewUserHandlerServer(srv.Router(), userSvc) // Register the new handler
+	userServer.NewUserHandlerServer(srv.Router(), userSvc)
 
 	// Start the server.
 	serverPort := fmt.Sprintf(":%s", cfg.App.Port)

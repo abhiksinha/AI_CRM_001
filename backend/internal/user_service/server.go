@@ -23,6 +23,66 @@ func NewUserHandlerServer(mux *chi.Mux, svc *service.UserService) *UserHandlerSe
 	return s
 }
 
+// --- API Key Handlers ---
+
+func (h *UserHandlerServer) CreateApiKey(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var req contracts.CreateApiKeyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		public_response.ToError(w, public_response.ErrValidation)
+		return
+	}
+	if err := service.ValidateCreateApiKeyRequest(req); err != nil {
+		public_response.ToErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
+		return
+	}
+	response, err := h.service.CreateApiKey(ctx, req)
+	if err != nil {
+		public_response.ToError(w, err)
+		return
+	}
+	public_response.Created(w, response)
+}
+
+func (h *UserHandlerServer) MatchApiKey(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var req contracts.MatchApiKeyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		public_response.ToError(w, public_response.ErrValidation)
+		return
+	}
+	if err := service.ValidateMatchApiKeyRequest(req); err != nil {
+		public_response.ToErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
+		return
+	}
+	_, err := h.service.MatchApiKey(ctx, req)
+	if err != nil {
+		public_response.ToError(w, err)
+		return
+	}
+	public_response.OK(w, map[string]bool{"is_valid": true})
+}
+
+func (h *UserHandlerServer) ExpireApiKey(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var req contracts.ExpireApiKeyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		public_response.ToError(w, public_response.ErrValidation)
+		return
+	}
+	if err := service.ValidateExpireApiKeyRequest(req); err != nil {
+		public_response.ToErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
+		return
+	}
+	if err := h.service.ExpireApiKey(ctx, req); err != nil {
+		public_response.ToError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- User Handlers ---
+// (Existing handlers remain unchanged)
 func (h *UserHandlerServer) VerifyPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req contracts.VerifyPasswordRequest
@@ -30,21 +90,17 @@ func (h *UserHandlerServer) VerifyPassword(w http.ResponseWriter, r *http.Reques
 		public_response.ToError(w, public_response.ErrValidation)
 		return
 	}
-	// Validate the request.
 	if err := service.ValidateVerifyPasswordRequest(req); err != nil {
 		public_response.ToErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
 		return
 	}
-
 	isValid, err := h.service.VerifyPassword(ctx, req)
 	if err != nil {
 		public_response.ToError(w, err)
 		return
 	}
-
 	public_response.OK(w, map[string]bool{"is_valid": isValid})
 }
-
 func (h *UserHandlerServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req contracts.CreateUserRequest
@@ -63,7 +119,6 @@ func (h *UserHandlerServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	public_response.Created(w, response)
 }
-
 func (h *UserHandlerServer) ListUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req contracts.ListUsersRequest
@@ -82,7 +137,6 @@ func (h *UserHandlerServer) ListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	public_response.OK(w, response)
 }
-
 func (h *UserHandlerServer) GetUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := chi.URLParam(r, "userID")
@@ -93,7 +147,6 @@ func (h *UserHandlerServer) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 	public_response.OK(w, response)
 }
-
 func (h *UserHandlerServer) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := chi.URLParam(r, "userID")
@@ -113,7 +166,6 @@ func (h *UserHandlerServer) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	public_response.OK(w, response)
 }
-
 func (h *UserHandlerServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := chi.URLParam(r, "userID")

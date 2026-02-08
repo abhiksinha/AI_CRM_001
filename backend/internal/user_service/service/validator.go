@@ -2,11 +2,30 @@ package service
 
 import (
 	"CRM/internal/user_service/contracts"
+
 	"github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
-// ValidateCreateUserRequest performs validation on the CreateUserRequest struct.
+// ... (existing validators)
+
+func ValidateCreateApiKeyRequest(req contracts.CreateApiKeyRequest) error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.UserID, validation.Required.Error("user_id is required")),
+	)
+}
+
+func ValidateMatchApiKeyRequest(req contracts.MatchApiKeyRequest) error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.ApiKey, validation.Required.Error("api_key is required")),
+	)
+}
+
+func ValidateExpireApiKeyRequest(req contracts.ExpireApiKeyRequest) error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.ApiKey, validation.Required.Error("api_key is required")),
+	)
+}
 func ValidateCreateUserRequest(req contracts.CreateUserRequest) error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.FirstName, validation.Required.Error("first name is required")),
@@ -19,15 +38,11 @@ func ValidateCreateUserRequest(req contracts.CreateUserRequest) error {
 		validation.Field(&req.Role, validation.Required.Error("role is required"), validation.In("admin", "user").Error("role must be 'admin' or 'user'")),
 	)
 }
-
-// ValidateUpdateUserRequest performs validation on the UpdateUserRequest struct.
 func ValidateUpdateUserRequest(req contracts.UpdateUserRequest) error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.Role, validation.When(req.Role != nil, validation.In("admin", "user").Error("role must be 'admin' or 'user'"))),
 	)
 }
-
-// ValidateListUsersRequest performs validation on the ListUsersRequest query parameters.
 func ValidateListUsersRequest(req contracts.ListUsersRequest) error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.Page, validation.Min(1).Error("page must be greater than 0")),
@@ -35,8 +50,6 @@ func ValidateListUsersRequest(req contracts.ListUsersRequest) error {
 		validation.Field(&req.Role, validation.When(req.Role != "", validation.In("admin", "user").Error("role must be 'admin' or 'user'"))),
 	)
 }
-
-// ValidateVerifyPasswordRequest performs validation on the VerifyPasswordRequest struct.
 func ValidateVerifyPasswordRequest(req contracts.VerifyPasswordRequest) error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.ID, validation.Required.Error("user id is required")),
