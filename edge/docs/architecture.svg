@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-label="Edge service architecture">
+  <defs>
+    <style>
+      .box{stroke:#1e1e1e;stroke-width:2;rx:10;ry:10}
+      .label{font-family:Arial, Helvetica, sans-serif;font-size:16px;fill:#1b1b1b}
+      .small{font-size:14px;fill:#1b1b1b}
+      .arrow{stroke:#1e1e1e;stroke-width:2.2;fill:none;marker-end:url(#arrow)}
+      .accent{stroke:#3b82f6;stroke-width:2.2;fill:none;marker-end:url(#arrowBlue)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1e1e1e" />
+    </marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" />
+    </marker>
+  </defs>
+
+  <!-- Boxes -->
+  <rect class="box" x="40" y="60" width="220" height="80" fill="#FFF4D6" />
+  <text class="label" x="150" y="95" text-anchor="middle">Client / UI / S2S</text>
+
+  <rect class="box" x="320" y="40" width="260" height="120" fill="#E7F0FF" />
+  <text class="label" x="450" y="75" text-anchor="middle">Edge API</text>
+  <text class="label small" x="450" y="100" text-anchor="middle">(Go + chi)</text>
+  <text class="label small" x="450" y="122" text-anchor="middle">Auth + Proxy</text>
+
+  <rect class="box" x="700" y="50" width="240" height="100" fill="#E8F7EC" />
+  <text class="label" x="820" y="90" text-anchor="middle">Backend API</text>
+  <text class="label small" x="820" y="112" text-anchor="middle">(Go + chi)</text>
+
+  <rect class="box" x="360" y="260" width="180" height="70" fill="#FDE8F2" />
+  <text class="label" x="450" y="300" text-anchor="middle">Redis</text>
+
+  <!-- Arrows + Labels -->
+  <line class="accent" x1="260" y1="100" x2="320" y2="100" />
+  <text class="small" x="290" y="85" text-anchor="middle">/v1/login</text>
+  <text class="small" x="290" y="105" text-anchor="middle">/v1/token</text>
+  <text class="small" x="290" y="125" text-anchor="middle">/v1/sessions</text>
+
+  <line class="arrow" x1="580" y1="95" x2="700" y2="95" />
+  <text class="small" x="640" y="80" text-anchor="middle">verify-password</text>
+  <text class="small" x="640" y="100" text-anchor="middle">api-keys/match</text>
+  <text class="small" x="640" y="120" text-anchor="middle">users?email</text>
+
+  <line class="arrow" x1="450" y1="160" x2="450" y2="260" />
+  <text class="small" x="470" y="210">session/token state</text>
+  <text class="small" x="470" y="230">TTL 30m</text>
+
+  <line class="accent" x1="150" y1="140" x2="150" y2="420" />
+  <line class="accent" x1="150" y1="420" x2="450" y2="420" />
+  <line class="accent" x1="450" y1="420" x2="700" y2="420" />
+  <text class="small" x="300" y="405" text-anchor="middle">/v1/* + Authorization: Bearer</text>
+  <text class="small" x="575" y="405" text-anchor="middle">/api/v1/* + X-User-ID</text>
+</svg>

@@ -24,3 +24,9 @@ type ApiKeyResponse struct {
 	UserID    string `json:"user_id"`
 	CreatedAt int64  `json:"created_at"`
 }
+
+// ApiKeyMatchResponse is the response for matching an API key.
+type ApiKeyMatchResponse struct {
+	IsValid bool   `json:"is_valid"`
+	UserID  string `json:"user_id"`
+}

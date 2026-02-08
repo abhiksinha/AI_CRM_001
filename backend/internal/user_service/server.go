@@ -55,12 +55,15 @@ func (h *UserHandlerServer) MatchApiKey(w http.ResponseWriter, r *http.Request) 
 		public_response.ToErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
 		return
 	}
-	_, err := h.service.MatchApiKey(ctx, req)
+	apiKey, err := h.service.MatchApiKey(ctx, req)
 	if err != nil {
 		public_response.ToError(w, err)
 		return
 	}
-	public_response.OK(w, map[string]bool{"is_valid": true})
+	public_response.OK(w, contracts.ApiKeyMatchResponse{
+		IsValid: true,
+		UserID:  apiKey.UserID,
+	})
 }
 
 func (h *UserHandlerServer) ExpireApiKey(w http.ResponseWriter, r *http.Request) {
