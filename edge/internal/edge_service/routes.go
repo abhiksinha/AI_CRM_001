@@ -37,9 +37,7 @@ func BuildRouteConfig() map[string]RouteConfig {
 		"POST /v1/deals":                      {BackendPath: "/api/v1/deals", AuthType: AuthToken, Method: http.MethodPost, Service: "backend_service"},
 		"POST /v1/deals/{dealID}/tasks":       {BackendPath: "/api/v1/deals/{dealID}/tasks", AuthType: AuthToken, Method: http.MethodPost, Service: "backend_service"},
 		"POST /v1/users":                      {BackendPath: "/api/v1/users", AuthType: AuthNone, Method: http.MethodPost, Service: "backend_service"},
-		"POST /v1/users/verify-password":      {BackendPath: "/api/v1/users/verify-password", AuthType: AuthToken, Method: http.MethodPost, Service: "backend_service"},
 		"POST /v1/users/api-keys":             {BackendPath: "/api/v1/users/api-keys", AuthType: AuthToken, Method: http.MethodPost, Service: "backend_service"},
-		"POST /v1/users/api-keys/match":       {BackendPath: "/api/v1/users/api-keys/match", AuthType: AuthToken, Method: http.MethodPost, Service: "backend_service"},
 
 		// PUT
 		"PUT /v1/contacts/{contactID}": {BackendPath: "/api/v1/contacts/{contactID}", AuthType: AuthToken, Method: http.MethodPut, Service: "backend_service"},
