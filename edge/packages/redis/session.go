@@ -107,3 +107,5 @@ func RefreshSessionTTL(ctx context.Context, client *goredis.Client, userID, sess
 	pipe.Expire(ctx, sessionSetKey, ttl)
 	_, _ = pipe.Exec(ctx)
 }
+
+// MigrateRawToken removed: only hashed tokens are supported.

@@ -92,7 +92,8 @@ func (s *AuthService) Logout(ctx context.Context, req contracts.LogoutRequest) e
 		return public_response.ErrValidation
 	}
 
-	tokenKey := fmt.Sprintf("auth:token:%s", req.APIToken)
+	tokenHash := edgeredis.HashValue(req.APIToken)
+	tokenKey := fmt.Sprintf("auth:token:%s", tokenHash)
 	data, err := s.redis.HGetAll(ctx, tokenKey).Result()
 	if err != nil {
 		s.logger.Error("failed to fetch token data", zap.Error(err))
