@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7.2
+    container_name: edge_redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - edge_redis_data:/data
+
+volumes:
+  edge_redis_data:

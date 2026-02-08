@@ -88,3 +88,16 @@ func ExpireSessionByID(ctx context.Context, client *goredis.Client, sessionID st
 
 	return ClearSession(ctx, client, userID, sessionID, apiToken)
 }
+
+// RefreshSessionTTL refreshes session-related keys to the provided TTL.
+func RefreshSessionTTL(ctx context.Context, client *goredis.Client, userID, sessionID, apiToken string, ttl time.Duration) {
+	sessionKey := fmt.Sprintf("auth:session:%s", sessionID)
+	tokenKey := fmt.Sprintf("auth:token:%s", apiToken)
+	sessionSetKey := fmt.Sprintf("auth:sessions:%s", userID)
+
+	pipe := client.TxPipeline()
+	pipe.Expire(ctx, tokenKey, ttl)
+	pipe.Expire(ctx, sessionKey, ttl)
+	pipe.Expire(ctx, sessionSetKey, ttl)
+	_, _ = pipe.Exec(ctx)
+}

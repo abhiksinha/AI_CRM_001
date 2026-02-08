@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"edge/packages/public_response"
+	edgeredis "edge/packages/redis"
 
 	"github.com/go-chi/chi/v5"
 	goredis "github.com/redis/go-redis/v9"
@@ -43,6 +44,10 @@ func (s *ProxyService) VerifyToken(ctx context.Context, token string) (string, e
 	userID := data["user_id"]
 	if userID == "" {
 		return "", public_response.ErrUnauthorized
+	}
+	sessionID := data["session_id"]
+	if sessionID != "" {
+		edgeredis.RefreshSessionTTL(ctx, s.redis, userID, sessionID, token, 30*time.Minute)
 	}
 	return userID, nil
 }
