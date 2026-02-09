@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: ai_clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: crm_warehouse
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: "clickhouse"
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - ai_clickhouse_data:/var/lib/clickhouse
+
+volumes:
+  ai_clickhouse_data:
