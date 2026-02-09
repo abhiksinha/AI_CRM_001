@@ -20,7 +20,7 @@ Here is a breakdown of the major components and their roles in the system.
        ^                       |               +----------+-----------+
        |                       v                          |
        |         +-------------------------+              | (Transactional DB)
-       |         | AI / Prediction Service |              v
+       |         |     Insight Engine      |              v
        |         |        (Python)         |      +-----------------+
        |         +-------------+-----------+      |    PostgreSQL   |
        |                       ^                  +-----------------+
@@ -47,7 +47,7 @@ Here is a breakdown of the major components and their roles in the system.
 
 2.  **API Gateway:**
     *   A single entry point for all client requests.
-    *   It routes requests to the appropriate backend service (e.g., a request for customer data goes to the `UserService`, while a request for a prediction might go to the `AI Service`).
+    *   It routes requests to the appropriate backend service (e.g., a request for customer data goes to the `UserService`, while a request for a prediction might go to the `Insight Engine`).
     *   Handles cross-cutting concerns like authentication, rate limiting, and logging.
 
 3.  **Core CRM Services (Go):**
@@ -67,7 +67,7 @@ Here is a breakdown of the major components and their roles in the system.
     *   It consolidates data from all services into a single source of truth for analysis. An ETL (Extract, Transform, Load) process consumes events from the Event Bus and loads them into the warehouse.
     *   This historical and aggregated data is perfect for training machine learning models.
 
-6.  **AI / Prediction Service (Python):**
+6.  **Insight Engine (Python):**
     *   This is the "predictive" engine of the CRM. It runs independently of the core services.
     *   It reads data from the Data Warehouse to train and run its machine learning models.
     *   **Key Models to Develop:**
@@ -83,6 +83,6 @@ Here is a breakdown of the major components and their roles in the system.
 3.  The **UserService** saves the new lead to its database and publishes a `lead-created` event to the **Event Bus**.
 4.  An ETL process picks up the event and inserts the new lead's data into the **Data Warehouse**.
 5.  The **Frontend**, after creating the lead, makes a request to the **API Gateway**: "What is the score for this new lead?"
-6.  The **API Gateway** forwards the request to the **AI / Prediction Service**.
-7.  The **AI Service** uses its trained Lead Scoring model (and potentially queries the **Data Warehouse** for more context) to calculate a score.
+6.  The **API Gateway** forwards the request to the **Insight Engine**.
+7.  The **Insight Engine** uses its trained Lead Scoring model (and potentially queries the **Data Warehouse** for more context) to calculate a score.
 8.  The score is returned to the **Frontend** and displayed to the user, who can now prioritize this lead accordingly.

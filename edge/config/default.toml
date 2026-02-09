@@ -12,3 +12,4 @@ DB = 0
 
 [BackendServices]
 backend_service = "http://127.0.0.1:8080"
+insight_engine = "http://127.0.0.1:8090"
