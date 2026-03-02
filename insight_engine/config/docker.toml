@@ -1,0 +1,18 @@
+[App]
+Env = "dev"
+Host = "0.0.0.0"
+Port = 8090
+
+[Warehouse]
+Host = "clickhouse"
+Port = 8123
+Database = "crm_warehouse"
+User = "default"
+Password = "clickhouse"
+
+[Postgres]
+Host = "postgres"
+Port = 5432
+Database = "crm"
+User = "postgres"
+Password = "postgres"

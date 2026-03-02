@@ -10,7 +10,13 @@ if [ -d "$PID_DIR" ]; then
     pid=$(cat "$pidfile")
     if kill -0 "$pid" >/dev/null 2>&1; then
       echo "Stopping $(basename "$pidfile" .pid) (pid $pid)"
-      kill "$pid" || true
+      kill -TERM "-$pid" || true
+      for _ in $(seq 1 10); do
+        if ! kill -0 "$pid" >/dev/null 2>&1; then
+          break
+        fi
+        sleep 0.3
+      done
     fi
     rm -f "$pidfile"
   done

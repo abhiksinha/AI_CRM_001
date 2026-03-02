@@ -81,10 +81,71 @@ p {
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-actions {
+  margin-top: auto;
+  padding-top: 8px;
+}
+
 .grid-two {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px;
+}
+
+.contact-search {
+  margin-bottom: 0;
+}
+
+.contact-search[readonly] {
+  cursor: pointer;
+}
+
+.contact-picker {
+  position: relative;
+}
+
+.contact-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-soft);
+  box-shadow: var(--shadow);
+  z-index: 20;
+}
+
+.contact-option {
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 0;
+  padding: 10px 12px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.contact-option:hover {
+  background: rgba(31, 111, 120, 0.08);
+}
+
+.contact-option.selected {
+  background: rgba(31, 111, 120, 0.14);
+}
+
+.contact-empty {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--muted);
 }
 
 label {

@@ -124,7 +124,7 @@ start_process() {
   fi
 
   echo "Starting $name..."
-  nohup "$@" > "$logfile" 2>&1 &
+  nohup setsid "$@" > "$logfile" 2>&1 &
   echo $! > "$pidfile"
 }
 

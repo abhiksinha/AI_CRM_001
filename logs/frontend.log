@@ -7,5 +7,8 @@ Port 5174 is in use, trying another one...
 
   VITE v5.4.21  ready in 300 ms
 
-  ➜  Local:   http://localhost:5175/
-  ➜  Network: use --host to expose
+  ➜  Local:   http://localhost:1:53:53 AM [vite] vite.config.js changed, restarting server...
+1:53:53 AM [vite] server restarted.
+1:54:13 AM [vite] vite.config.js changed, r1:54:13 AM [vite] vi1:54:13 AM [vite] server restarted.
+ver...
+1:54:13 AM [vite] server restarted.

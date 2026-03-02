@@ -31,6 +31,14 @@ npm run dev
 
 Open the URL shown by Vite (usually `http://localhost:5173`).
 
+## Run in Docker
+
+From repo root:
+
+```bash
+docker compose up --build
+```
+
 ## Docker Permission Note
 
 If you see Docker permission errors while running the full stack, add your user to the `docker` group and re-login:

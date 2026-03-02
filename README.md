@@ -2,17 +2,17 @@
 
 Full-stack CRM with Edge authentication, backend services, and an AI Insight Engine. The frontend is a React (Vite) app that talks to the Edge API.
 
-## Quick Start (All Services)
+## Quick Start (All Services in Docker)
 
 ```bash
 cd /home/abhishek/GolandProjects/AI_CRM_001
-./scripts/run-dev.sh
+docker compose up --build
 ```
 
 Stop everything:
 
 ```bash
-./scripts/stop-dev.sh
+docker compose down
 ```
 
 ### Docker Permission Note
@@ -28,14 +28,14 @@ sudo usermod -aG docker $USER
 - Postgres (for backend) via `docker-compose.yml`
 - Redis (for Edge auth/session) via `docker-compose.yml`
 - ClickHouse (for Insight Engine) via `docker-compose.yml`
-- Backend migrations (Goose)
-- Insight Engine schema init + ETL full load
+- Backend migrations (Goose) on startup
+- Insight Engine schema init + ETL full load on startup
 - Backend API: `http://127.0.0.1:8080`
 - Edge API: `http://127.0.0.1:8081`
 - Insight Engine: `http://127.0.0.1:8090`
 - Frontend: `http://localhost:5173`
 
-## Manual Run (Per Service)
+## Manual Run (Per Service, Without Docker)
 
 ### Dependencies
 

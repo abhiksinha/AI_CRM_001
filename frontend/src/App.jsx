@@ -1,7 +1,49 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-const EDGE_BASE_URL =
-  import.meta.env.VITE_EDGE_BASE_URL || "http://127.0.0.1:8081";
+function isLoopbackHost(hostname) {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname === "[::1]"
+  );
+}
+
+function resolveEdgeBaseUrl() {
+  const browserHost =
+    typeof window !== "undefined" ? window.location?.hostname || "" : "";
+  const browserProtocol =
+    typeof window !== "undefined" && window.location?.protocol === "https:"
+      ? "https:"
+      : "http:";
+
+  const configured = import.meta.env.VITE_EDGE_BASE_URL?.trim();
+  if (configured) {
+    try {
+      const parsed = new URL(configured);
+      if (browserHost && !isLoopbackHost(browserHost) && isLoopbackHost(parsed.hostname)) {
+        const host = browserHost.includes(":") ? `[${browserHost}]` : browserHost;
+        return `${parsed.protocol}//${host}${parsed.port ? `:${parsed.port}` : ""}`;
+      }
+    } catch {
+      // keep configured value if parsing fails
+    }
+    return configured.replace(/\/+$/, "");
+  }
+
+  if (import.meta.env.DEV) {
+    return "";
+  }
+
+  if (browserHost) {
+    const host = browserHost.includes(":") ? `[${browserHost}]` : browserHost;
+    return `${browserProtocol}//${host}:8081`;
+  }
+
+  return "http://127.0.0.1:8081";
+}
+
+const EDGE_BASE_URL = resolveEdgeBaseUrl();
 
 const COOKIE_TOKEN = "crm_auth_token";
 const COOKIE_USER = "crm_user_id";
@@ -109,6 +151,100 @@ function formatTimestamp(ts) {
   return date.toLocaleDateString();
 }
 
+function SearchablePicker({
+  label,
+  placeholder,
+  options,
+  selectedValue,
+  inputValue,
+  onInputValueChange,
+  onSelectValue,
+  formatOption,
+  searchOption,
+  emptyText = "No options found",
+  required = false,
+  disabled = false
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const pickerRef = useRef(null);
+  const isLockedSelection = Boolean(selectedValue);
+
+  const filteredOptions = useMemo(() => {
+    if (isLockedSelection) return options;
+    const query = inputValue.trim().toLowerCase();
+    if (!query) return options;
+    return options.filter((option) => searchOption(option).toLowerCase().includes(query));
+  }, [options, inputValue, searchOption, isLockedSelection]);
+
+  const handleOptionSelect = (option) => {
+    onSelectValue(option.id);
+    onInputValueChange(formatOption(option));
+    setIsOpen(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!pickerRef.current) return;
+      if (!pickerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <label>
+      {label}
+      <div className="contact-picker" ref={pickerRef}>
+        <input
+          type="text"
+          className="contact-search"
+          placeholder={placeholder}
+          required={required}
+          disabled={disabled}
+          readOnly={isLockedSelection}
+          value={inputValue}
+          onFocus={() => setIsOpen(true)}
+          onChange={(event) => {
+            const value = event.target.value;
+            onInputValueChange(value);
+            onSelectValue("");
+            setIsOpen(true);
+          }}
+        />
+        {isOpen && !disabled ? (
+          <div className="contact-suggestions">
+            {filteredOptions.length === 0 ? (
+              <div className="contact-empty">{emptyText}</div>
+            ) : (
+              filteredOptions.slice(0, 100).map((option) => {
+                const optionValue = option.id;
+                return (
+                  <button
+                    key={optionValue}
+                    type="button"
+                    className={`contact-option ${selectedValue === optionValue ? "selected" : ""}`}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      handleOptionSelect(option);
+                    }}
+                  >
+                    {formatOption(option)}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        ) : null}
+      </div>
+    </label>
+  );
+}
+
 function App() {
   const [auth, setAuth] = useState({
     status: "checking",
@@ -117,6 +253,7 @@ function App() {
     user: null
   });
   const [authError, setAuthError] = useState("");
+  const [authView, setAuthView] = useState("login");
 
   const [loginForm, setLoginForm] = useState({
     username: "",
@@ -135,6 +272,13 @@ function App() {
 
   const [contactForm, setContactForm] = useState(defaultContact);
   const [dealForm, setDealForm] = useState(defaultDeal);
+  const [contactOptions, setContactOptions] = useState([]);
+  const [dealOptions, setDealOptions] = useState([]);
+  const [dealContactInput, setDealContactInput] = useState("");
+  const [taskDealInput, setTaskDealInput] = useState("");
+  const [noteContactInput, setNoteContactInput] = useState("");
+  const [insightLeadInput, setInsightLeadInput] = useState("");
+  const [insightContactInput, setInsightContactInput] = useState("");
   const [taskForm, setTaskForm] = useState(defaultTask);
   const [noteForm, setNoteForm] = useState(defaultNote);
   const [insightForm, setInsightForm] = useState(defaultInsight);
@@ -147,6 +291,129 @@ function App() {
   });
 
   const authHeader = useMemo(() => auth.token, [auth.token]);
+  const formatContactOption = (contact) => {
+    const fullName =
+      contact?.name ||
+      [contact?.first_name, contact?.last_name].filter(Boolean).join(" ") ||
+      "Unknown";
+    return `${contact.id} - ${fullName}${contact?.email ? ` (${contact.email})` : ""}`;
+  };
+
+  const searchContactOption = (contact) =>
+    [
+      contact?.id,
+      contact?.name,
+      contact?.first_name,
+      contact?.last_name,
+      contact?.email
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+  const formatDealOption = (deal) =>
+    `${deal.id} - ${deal.name || "Untitled"}${deal?.stage ? ` (${deal.stage})` : ""}`;
+
+  const searchDealOption = (deal) =>
+    [deal?.id, deal?.name, deal?.stage, deal?.contact_id].filter(Boolean).join(" ");
+
+  const taskDealOptions = useMemo(() => {
+    if (!noteForm.contact_id) return [];
+    return dealOptions.filter((deal) => deal?.contact_id === noteForm.contact_id);
+  }, [dealOptions, noteForm.contact_id]);
+
+  const loadContactOptions = async () => {
+    if (!authHeader) return;
+
+    const pageSize = 200;
+    const maxPages = 50;
+    let page = 1;
+    let totalCount = null;
+    const collected = [];
+
+    while (page <= maxPages) {
+      const payload = await apiRequest(`/v1/contacts?page=${page}&page_size=${pageSize}`, {
+        token: authHeader
+      });
+      const batch = Array.isArray(payload?.data) ? payload.data : [];
+      if (batch.length === 0) break;
+
+      collected.push(...batch);
+      const parsedTotal = Number(payload?.total_count);
+      if (Number.isFinite(parsedTotal) && parsedTotal > 0) {
+        totalCount = parsedTotal;
+      }
+
+      if ((totalCount !== null && collected.length >= totalCount) || batch.length < pageSize) {
+        break;
+      }
+      page += 1;
+    }
+
+    const uniqueByID = Array.from(
+      new Map(
+        collected
+          .filter((contact) => Boolean(contact?.id))
+          .map((contact) => [contact.id, contact])
+      ).values()
+    );
+    uniqueByID.sort((left, right) => {
+      const leftCreated = Number(left?.created_at || 0);
+      const rightCreated = Number(right?.created_at || 0);
+      if (leftCreated > 0 && rightCreated > 0 && leftCreated !== rightCreated) {
+        return rightCreated - leftCreated;
+      }
+      return String(right?.id || "").localeCompare(String(left?.id || ""));
+    });
+
+    setContactOptions(uniqueByID);
+  };
+
+  const loadDealOptions = async () => {
+    if (!authHeader) return;
+
+    const pageSize = 200;
+    const maxPages = 50;
+    let page = 1;
+    let totalCount = null;
+    const collected = [];
+
+    while (page <= maxPages) {
+      const payload = await apiRequest(`/v1/deals?page=${page}&page_size=${pageSize}`, {
+        token: authHeader
+      });
+      const batch = Array.isArray(payload?.data) ? payload.data : [];
+      if (batch.length === 0) break;
+
+      collected.push(...batch);
+      const parsedTotal = Number(payload?.total_count);
+      if (Number.isFinite(parsedTotal) && parsedTotal > 0) {
+        totalCount = parsedTotal;
+      }
+
+      if ((totalCount !== null && collected.length >= totalCount) || batch.length < pageSize) {
+        break;
+      }
+      page += 1;
+    }
+
+    const uniqueByID = Array.from(
+      new Map(
+        collected
+          .filter((deal) => Boolean(deal?.id))
+          .map((deal) => [deal.id, deal])
+      ).values()
+    );
+    uniqueByID.sort((left, right) => {
+      const leftCreated = Number(left?.created_at || 0);
+      const rightCreated = Number(right?.created_at || 0);
+      if (leftCreated > 0 && rightCreated > 0 && leftCreated !== rightCreated) {
+        return rightCreated - leftCreated;
+      }
+      return String(right?.id || "").localeCompare(String(left?.id || ""));
+    });
+
+    setDealOptions(uniqueByID);
+  };
 
   useEffect(() => {
     const existingToken = getCookie(COOKIE_TOKEN);
@@ -189,6 +456,26 @@ function App() {
     refreshOverview();
   }, [auth.status]);
 
+  useEffect(() => {
+    if (auth.status !== "logged_in") {
+      setContactOptions([]);
+      setDealOptions([]);
+      setDealContactInput("");
+      setTaskDealInput("");
+      setNoteContactInput("");
+      setInsightLeadInput("");
+      setInsightContactInput("");
+      return;
+    }
+
+    loadContactOptions().catch(() => {
+      setContactOptions([]);
+    });
+    loadDealOptions().catch(() => {
+      setDealOptions([]);
+    });
+  }, [auth.status, authHeader]);
+
   const refreshOverview = async () => {
     try {
       const [contactsResponse, dealsResponse] = await Promise.all([
@@ -197,11 +484,11 @@ function App() {
       ]);
       setContacts(contactsResponse?.data || []);
       setDeals(dealsResponse?.data || []);
-      setOverview({
+      setOverview((prev) => ({
+        ...prev,
         contacts: contactsResponse?.total_count ?? 0,
-        deals: dealsResponse?.total_count ?? 0,
-        tasks: activeDealTasks.length
-      });
+        deals: dealsResponse?.total_count ?? 0
+      }));
     } catch (error) {
       setActionStatus({
         loading: false,
@@ -270,6 +557,14 @@ function App() {
     clearCookie(COOKIE_TOKEN);
     clearCookie(COOKIE_USER);
     setAuth({ status: "logged_out", token: null, userId: null, user: null });
+    setAuthView("login");
+    setContactOptions([]);
+    setDealOptions([]);
+    setDealContactInput("");
+    setTaskDealInput("");
+    setNoteContactInput("");
+    setInsightLeadInput("");
+    setInsightContactInput("");
   };
 
   const updateActionStatus = (message, tone = "neutral") => {
@@ -307,10 +602,17 @@ function App() {
       ...defaultContact,
       owner_id: prev.owner_id
     }));
+    await loadContactOptions().catch(() => {
+      // keep current selector data if refresh fails
+    });
   };
 
   const createDeal = async (event) => {
     event.preventDefault();
+    if (!dealForm.contact_id) {
+      updateActionStatus("Select a contact from the suggestion list", "danger");
+      return;
+    }
     const payload = {
       ...dealForm,
       value: Number(dealForm.value || 0)
@@ -328,12 +630,20 @@ function App() {
       ...defaultDeal,
       owner_id: prev.owner_id
     }));
+    setDealContactInput("");
+    await loadDealOptions().catch(() => {
+      // keep current deal selector data if refresh fails
+    });
   };
 
   const createTask = async (event) => {
     event.preventDefault();
+    if (!noteForm.contact_id) {
+      updateActionStatus("Select a contact first", "danger");
+      return;
+    }
     if (!taskForm.deal_id) {
-      updateActionStatus("Select a deal ID first", "danger");
+      updateActionStatus("Select a deal ID for the selected contact", "danger");
       return;
     }
     await runAction(
@@ -354,6 +664,7 @@ function App() {
       ...defaultTask,
       assigned_to_id: prev.assigned_to_id
     }));
+    setTaskDealInput("");
   };
 
   const addNote = async (event) => {
@@ -371,7 +682,10 @@ function App() {
         }),
       "Note added"
     );
-    setNoteForm(defaultNote);
+    setNoteForm((prev) => ({
+      ...prev,
+      content: ""
+    }));
   };
 
   const fetchTasks = async (dealId) => {
@@ -408,6 +722,10 @@ function App() {
 
   const runLeadScore = async (event) => {
     event.preventDefault();
+    if (!insightForm.lead_id) {
+      updateActionStatus("Select a lead ID from the list", "danger");
+      return;
+    }
     await runInsight(
       () =>
         apiRequest("/v1/lead-score", {
@@ -424,6 +742,10 @@ function App() {
 
   const runChurnScore = async (event) => {
     event.preventDefault();
+    if (!insightForm.contact_id) {
+      updateActionStatus("Select a contact ID from the list", "danger");
+      return;
+    }
     await runInsight(
       () =>
         apiRequest("/v1/churn-score", {
@@ -440,6 +762,10 @@ function App() {
 
   const runClv = async (event) => {
     event.preventDefault();
+    if (!insightForm.contact_id) {
+      updateActionStatus("Select a contact ID from the list", "danger");
+      return;
+    }
     await runInsight(
       () =>
         apiRequest("/v1/clv", {
@@ -491,125 +817,151 @@ function App() {
           </div>
         </header>
         <section className="auth-grid">
-          <form className="panel" onSubmit={handleLogin}>
-            <h2>Login</h2>
-            <p className="muted">
-              Use your email or user ID from the backend service.
-            </p>
-            <label>
-              Username
-              <input
-                type="text"
-                placeholder="email or user id"
-                value={loginForm.username}
-                onChange={(event) =>
-                  setLoginForm((prev) => ({
-                    ...prev,
-                    username: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <label>
-              Password
-              <input
-                type="password"
-                value={loginForm.password}
-                onChange={(event) =>
-                  setLoginForm((prev) => ({
-                    ...prev,
-                    password: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <button className="primary" type="submit">
-              Login
-            </button>
-          </form>
-
-          <form className="panel" onSubmit={handleSignup}>
-            <h2>Signup</h2>
-            <p className="muted">Create a new internal CRM account.</p>
-            <div className="grid-two">
+          {authView === "login" ? (
+            <form className="panel auth-panel" onSubmit={handleLogin}>
+              <h2>Login</h2>
+              <p className="muted">
+                Use your email or user ID from the backend service.
+              </p>
               <label>
-                First name
+                Username
                 <input
                   type="text"
-                  value={signupForm.first_name}
+                  placeholder="email or user id"
+                  value={loginForm.username}
                   onChange={(event) =>
-                    setSignupForm((prev) => ({
+                    setLoginForm((prev) => ({
                       ...prev,
-                      first_name: event.target.value
+                      username: event.target.value
                     }))
                   }
                   required
                 />
               </label>
               <label>
-                Last name
+                Password
                 <input
-                  type="text"
-                  value={signupForm.last_name}
+                  type="password"
+                  value={loginForm.password}
                   onChange={(event) =>
-                    setSignupForm((prev) => ({
+                    setLoginForm((prev) => ({
                       ...prev,
-                      last_name: event.target.value
+                      password: event.target.value
                     }))
                   }
                   required
                 />
               </label>
-            </div>
-            <label>
-              Email
-              <input
-                type="email"
-                value={signupForm.email}
-                onChange={(event) =>
-                  setSignupForm((prev) => ({
-                    ...prev,
-                    email: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <label>
-              Password
-              <input
-                type="password"
-                value={signupForm.password}
-                onChange={(event) =>
-                  setSignupForm((prev) => ({
-                    ...prev,
-                    password: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <label>
-              Role
-              <select
-                value={signupForm.role}
-                onChange={(event) =>
-                  setSignupForm((prev) => ({
-                    ...prev,
-                    role: event.target.value
-                  }))
-                }
-              >
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-              </select>
-            </label>
-            <button className="primary" type="submit">
-              Create account
-            </button>
-          </form>
+              <button className="primary" type="submit">
+                Login
+              </button>
+              <div className="auth-actions">
+                <button
+                  className="ghost"
+                  type="button"
+                  onClick={() => {
+                    setAuthError("");
+                    setAuthView("signup");
+                  }}
+                >
+                  Create New User
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form className="panel auth-panel" onSubmit={handleSignup}>
+              <h2>Signup</h2>
+              <p className="muted">Create a new internal CRM account.</p>
+              <div className="grid-two">
+                <label>
+                  First name
+                  <input
+                    type="text"
+                    value={signupForm.first_name}
+                    onChange={(event) =>
+                      setSignupForm((prev) => ({
+                        ...prev,
+                        first_name: event.target.value
+                      }))
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  Last name
+                  <input
+                    type="text"
+                    value={signupForm.last_name}
+                    onChange={(event) =>
+                      setSignupForm((prev) => ({
+                        ...prev,
+                        last_name: event.target.value
+                      }))
+                    }
+                    required
+                  />
+                </label>
+              </div>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={signupForm.email}
+                  onChange={(event) =>
+                    setSignupForm((prev) => ({
+                      ...prev,
+                      email: event.target.value
+                    }))
+                  }
+                  required
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={signupForm.password}
+                  onChange={(event) =>
+                    setSignupForm((prev) => ({
+                      ...prev,
+                      password: event.target.value
+                    }))
+                  }
+                  required
+                />
+              </label>
+              <label>
+                Role
+                <select
+                  value={signupForm.role}
+                  onChange={(event) =>
+                    setSignupForm((prev) => ({
+                      ...prev,
+                      role: event.target.value
+                    }))
+                  }
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <button className="primary" type="submit">
+                Create account
+              </button>
+              <div className="auth-actions">
+                <button
+                  className="ghost"
+                  type="button"
+                  onClick={() => {
+                    setAuthError("");
+                    setAuthView("login");
+                  }}
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          )}
         </section>
         {authError ? <div className="banner danger">{authError}</div> : null}
         <footer className="auth-footer">
@@ -778,19 +1130,6 @@ function App() {
                 required
               />
             </label>
-            <label>
-              Owner ID
-              <input
-                type="text"
-                value={contactForm.owner_id}
-                onChange={(event) =>
-                  setContactForm((prev) => ({
-                    ...prev,
-                    owner_id: event.target.value
-                  }))
-                }
-              />
-            </label>
             <button className="primary" type="submit">
               Create contact
             </button>
@@ -863,33 +1202,22 @@ function App() {
                 }
               />
             </label>
-            <label>
-              Contact ID
-              <input
-                type="text"
-                value={dealForm.contact_id}
-                onChange={(event) =>
-                  setDealForm((prev) => ({
-                    ...prev,
-                    contact_id: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <label>
-              Owner ID
-              <input
-                type="text"
-                value={dealForm.owner_id}
-                onChange={(event) =>
-                  setDealForm((prev) => ({
-                    ...prev,
-                    owner_id: event.target.value
-                  }))
-                }
-              />
-            </label>
+            <SearchablePicker
+              label="Contact ID"
+              placeholder="Click to view contacts, or type to search"
+              options={contactOptions}
+              selectedValue={dealForm.contact_id}
+              inputValue={dealContactInput}
+              onInputValueChange={setDealContactInput}
+              onSelectValue={(value) =>
+                setDealForm((prev) => ({
+                  ...prev,
+                  contact_id: value
+                }))
+              }
+              formatOption={formatContactOption}
+              searchOption={searchContactOption}
+            />
             <button className="primary" type="submit">
               Create deal
             </button>
@@ -899,19 +1227,53 @@ function App() {
         <div className="panel">
           <h2>Tasks & Notes</h2>
           <form onSubmit={createTask} className="form-stack">
-            <label>
-              Deal ID (for tasks)
-              <input
-                type="text"
-                value={taskForm.deal_id}
-                onChange={(event) =>
-                  setTaskForm((prev) => ({
-                    ...prev,
-                    deal_id: event.target.value
-                  }))
-                }
-              />
-            </label>
+            <SearchablePicker
+              label="Contact ID (for tasks & notes)"
+              placeholder="Click to view contacts, or type to search"
+              options={contactOptions}
+              selectedValue={noteForm.contact_id}
+              inputValue={noteContactInput}
+              onInputValueChange={setNoteContactInput}
+              onSelectValue={(value) => {
+                setNoteForm((prev) => ({
+                  ...prev,
+                  contact_id: value
+                }));
+                setTaskForm((prev) => ({
+                  ...prev,
+                  deal_id: ""
+                }));
+                setTaskDealInput("");
+              }}
+              formatOption={formatContactOption}
+              searchOption={searchContactOption}
+            />
+            <SearchablePicker
+              label="Deal ID (for tasks)"
+              placeholder={
+                noteForm.contact_id
+                  ? "Click to view deals, or type to search"
+                  : "Select contact first"
+              }
+              options={taskDealOptions}
+              selectedValue={taskForm.deal_id}
+              inputValue={taskDealInput}
+              onInputValueChange={setTaskDealInput}
+              onSelectValue={(value) =>
+                setTaskForm((prev) => ({
+                  ...prev,
+                  deal_id: value
+                }))
+              }
+              formatOption={formatDealOption}
+              searchOption={searchDealOption}
+              emptyText={
+                noteForm.contact_id
+                  ? "No deals found for this contact"
+                  : "Select contact first"
+              }
+              disabled={!noteForm.contact_id}
+            />
             <button
               className="ghost"
               type="button"
@@ -981,19 +1343,6 @@ function App() {
 
           <form onSubmit={addNote} className="form-stack">
             <label>
-              Contact ID (for notes)
-              <input
-                type="text"
-                value={noteForm.contact_id}
-                onChange={(event) =>
-                  setNoteForm((prev) => ({
-                    ...prev,
-                    contact_id: event.target.value
-                  }))
-                }
-              />
-            </label>
-            <label>
               Note content
               <textarea
                 rows="3"
@@ -1021,40 +1370,46 @@ function App() {
             Trigger scoring requests routed through the edge service.
           </p>
           <form onSubmit={runLeadScore} className="form-stack">
-            <label>
-              Lead ID
-              <input
-                type="text"
-                value={insightForm.lead_id}
-                onChange={(event) =>
-                  setInsightForm((prev) => ({
-                    ...prev,
-                    lead_id: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
+            <SearchablePicker
+              label="Lead ID"
+              placeholder="Click to view contacts, or type to search"
+              options={contactOptions}
+              selectedValue={insightForm.lead_id}
+              inputValue={insightLeadInput}
+              onInputValueChange={setInsightLeadInput}
+              onSelectValue={(value) =>
+                setInsightForm((prev) => ({
+                  ...prev,
+                  lead_id: value
+                }))
+              }
+              formatOption={formatContactOption}
+              searchOption={searchContactOption}
+              required
+            />
             <button className="primary" type="submit">
               Run lead score
             </button>
           </form>
           <div className="divider" />
           <form onSubmit={runChurnScore} className="form-stack">
-            <label>
-              Contact ID
-              <input
-                type="text"
-                value={insightForm.contact_id}
-                onChange={(event) =>
-                  setInsightForm((prev) => ({
-                    ...prev,
-                    contact_id: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
+            <SearchablePicker
+              label="Contact ID"
+              placeholder="Click to view contacts, or type to search"
+              options={contactOptions}
+              selectedValue={insightForm.contact_id}
+              inputValue={insightContactInput}
+              onInputValueChange={setInsightContactInput}
+              onSelectValue={(value) =>
+                setInsightForm((prev) => ({
+                  ...prev,
+                  contact_id: value
+                }))
+              }
+              formatOption={formatContactOption}
+              searchOption={searchContactOption}
+              required
+            />
             <button className="primary" type="submit">
               Run churn score
             </button>
