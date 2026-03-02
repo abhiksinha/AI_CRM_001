@@ -84,7 +84,6 @@ export function ContactsPage({ contacts, contactForm, setContactForm, createCont
                   phone: event.target.value
                 }))
               }
-              required
             />
           </label>
           <button className="primary" type="submit">
