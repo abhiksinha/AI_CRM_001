@@ -20,6 +20,7 @@ func New() *Server {
 		router: chi.NewRouter(),
 	}
 
+	s.router.Use(corsMiddleware)
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
 	s.router.Use(middleware.RequestID)

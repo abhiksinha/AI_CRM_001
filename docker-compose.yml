@@ -1,0 +1,167 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: crm-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-crm}
+    ports:
+      - "5432:5432"
+    volumes:
+      - crm-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-crm}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2
+    container_name: edge_redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - edge_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: ai_clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: crm_warehouse
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: "clickhouse"
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - ai_clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --user default --password clickhouse --query \"SELECT 1\" > /dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    command: >
+      sh -c "until pg_isready -h postgres -p 5432 -U postgres; do sleep 1; done;
+      go run ./cmd/migrations up"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - ./backend/config/docker.toml:/app/config/default.toml:ro
+      - go-pkg-mod:/go/pkg/mod
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    volumes:
+      - ./backend:/app
+      - ./backend/config/docker.toml:/app/config/default.toml:ro
+      - go-pkg-mod:/go/pkg/mod
+    environment:
+      - GO111MODULE=on
+
+  insight_engine:
+    build:
+      context: ./insight_engine
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8090:8090"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./insight_engine:/app
+      - ./insight_engine/config/docker.toml:/app/config/default.toml:ro
+
+  etl:
+    build:
+      context: ./insight_engine
+      dockerfile: Dockerfile.dev
+    command: >
+      sh -c "until curl -sSf http://clickhouse:8123/ping > /dev/null; do sleep 1; done;
+      curl -sSf -u default:clickhouse --data-binary @etl/schema.sql
+      'http://clickhouse:8123/?multiquery=1';
+      ETL_INCREMENTAL=0 PG_HOST=postgres CH_HOST=clickhouse python etl/load_contacts_from_postgres.py"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    volumes:
+      - ./insight_engine:/app
+      - ./insight_engine/config/docker.toml:/app/config/default.toml:ro
+
+  edge:
+    build:
+      context: ./edge
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8081:8081"
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      insight_engine:
+        condition: service_started
+    volumes:
+      - ./edge:/app
+      - ./edge/config/docker.toml:/app/config/default.toml:ro
+      - go-pkg-mod:/go/pkg/mod
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_EDGE_BASE_URL=${VITE_EDGE_BASE_URL:-}
+      - VITE_DEV_PROXY_TARGET=http://edge:8081
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      edge:
+        condition: service_started
+
+volumes:
+  crm-db-data:
+    driver: local
+  edge_redis_data:
+    driver: local
+  ai_clickhouse_data:
+    driver: local
+  go-pkg-mod:
+    driver: local

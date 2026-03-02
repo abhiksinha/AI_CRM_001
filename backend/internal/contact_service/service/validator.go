@@ -2,10 +2,9 @@ package service
 
 import (
 	"CRM/internal/contact_service/contracts"
-	"regexp"
-
 	"github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"regexp"
 )
 
 // ValidateCreateContactRequest performs validation on the CreateContactRequest struct.
@@ -13,9 +12,9 @@ func ValidateCreateContactRequest(req contracts.CreateContactRequest) error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.FirstName, validation.Required.Error("first name is required")),
 		validation.Field(&req.Email, validation.Required.Error("email is required"), is.EmailFormat),
+		// Phone is now optional. If provided, it must match the E.164 format.
 		validation.Field(&req.Phone,
-			validation.Required.Error("phone number is required"),
-			validation.Match(regexp.MustCompile(`^\+\d{1,15}$`)).Error("phone number must be in E.164 format (e.g., +12125552368)"),
+			validation.When(req.Phone != "", validation.Match(regexp.MustCompile(`^\+\d{1,15}$`)).Error("phone number must be in E.164 format (e.g., +12125552368)")),
 		),
 	)
 }

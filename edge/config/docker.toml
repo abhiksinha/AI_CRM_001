@@ -1,0 +1,15 @@
+[App]
+Env = "dev"
+ServiceName = "edge"
+Host = "0.0.0.0"
+Port = "8081"
+
+[Redis]
+Host = "redis"
+Port = "6379"
+Password = ""
+DB = 0
+
+[BackendServices]
+backend_service = "http://backend:8080"
+insight_engine = "http://insight_engine:8090"
