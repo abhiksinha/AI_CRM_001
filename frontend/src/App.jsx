@@ -457,6 +457,12 @@ function App() {
   }, [auth.status]);
 
   useEffect(() => {
+    setOverview((prev) =>
+      prev.tasks === activeDealTasks.length ? prev : { ...prev, tasks: activeDealTasks.length }
+    );
+  }, [activeDealTasks]);
+
+  useEffect(() => {
     if (auth.status !== "logged_in") {
       setContactOptions([]);
       setDealOptions([]);
@@ -475,6 +481,15 @@ function App() {
       setDealOptions([]);
     });
   }, [auth.status, authHeader]);
+
+  useEffect(() => {
+    if (auth.status !== "logged_in") return;
+    if (!taskForm.deal_id) {
+      setActiveDealTasks([]);
+      return;
+    }
+    fetchTasks(taskForm.deal_id);
+  }, [auth.status, taskForm.deal_id]);
 
   const refreshOverview = async () => {
     try {
@@ -699,10 +714,18 @@ function App() {
         const payload = await apiRequest(`/v1/deals/${dealId}/tasks`, {
           token: authHeader
         });
-        setActiveDealTasks(payload?.data || []);
+        const tasks = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload?.tasks)
+            ? payload.tasks
+            : [];
+        const parsedTotal = Number(payload?.total_count ?? payload?.totalCount ?? tasks.length);
+        const taskCount = Number.isFinite(parsedTotal) ? parsedTotal : tasks.length;
+
+        setActiveDealTasks(tasks);
         setOverview((prev) => ({
           ...prev,
-          tasks: payload?.total_count ?? 0
+          tasks: taskCount
         }));
         return payload;
       },
