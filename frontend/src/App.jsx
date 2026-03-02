@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Layout } from "./components/Layout";
+import { Dashboard } from "./pages/Dashboard";
+import { ContactsPage } from "./pages/ContactsPage";
+import { DealsPage } from "./pages/DealsPage";
+import { TasksPage } from "./pages/TasksPage";
+import { InsightsPage } from "./pages/InsightsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 function isLoopbackHost(hostname) {
   return (
@@ -151,100 +158,6 @@ function formatTimestamp(ts) {
   return date.toLocaleDateString();
 }
 
-function SearchablePicker({
-  label,
-  placeholder,
-  options,
-  selectedValue,
-  inputValue,
-  onInputValueChange,
-  onSelectValue,
-  formatOption,
-  searchOption,
-  emptyText = "No options found",
-  required = false,
-  disabled = false
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const pickerRef = useRef(null);
-  const isLockedSelection = Boolean(selectedValue);
-
-  const filteredOptions = useMemo(() => {
-    if (isLockedSelection) return options;
-    const query = inputValue.trim().toLowerCase();
-    if (!query) return options;
-    return options.filter((option) => searchOption(option).toLowerCase().includes(query));
-  }, [options, inputValue, searchOption, isLockedSelection]);
-
-  const handleOptionSelect = (option) => {
-    onSelectValue(option.id);
-    onInputValueChange(formatOption(option));
-    setIsOpen(false);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!pickerRef.current) return;
-      if (!pickerRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  return (
-    <label>
-      {label}
-      <div className="contact-picker" ref={pickerRef}>
-        <input
-          type="text"
-          className="contact-search"
-          placeholder={placeholder}
-          required={required}
-          disabled={disabled}
-          readOnly={isLockedSelection}
-          value={inputValue}
-          onFocus={() => setIsOpen(true)}
-          onChange={(event) => {
-            const value = event.target.value;
-            onInputValueChange(value);
-            onSelectValue("");
-            setIsOpen(true);
-          }}
-        />
-        {isOpen && !disabled ? (
-          <div className="contact-suggestions">
-            {filteredOptions.length === 0 ? (
-              <div className="contact-empty">{emptyText}</div>
-            ) : (
-              filteredOptions.slice(0, 100).map((option) => {
-                const optionValue = option.id;
-                return (
-                  <button
-                    key={optionValue}
-                    type="button"
-                    className={`contact-option ${selectedValue === optionValue ? "selected" : ""}`}
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      handleOptionSelect(option);
-                    }}
-                  >
-                    {formatOption(option)}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        ) : null}
-      </div>
-    </label>
-  );
-}
-
 function App() {
   const [auth, setAuth] = useState({
     status: "checking",
@@ -254,6 +167,7 @@ function App() {
   });
   const [authError, setAuthError] = useState("");
   const [authView, setAuthView] = useState("login");
+  const [currentPage, setCurrentPage] = useState("dashboard");
 
   const [loginForm, setLoginForm] = useState({
     username: "",
@@ -573,6 +487,7 @@ function App() {
     clearCookie(COOKIE_USER);
     setAuth({ status: "logged_out", token: null, userId: null, user: null });
     setAuthView("login");
+    setCurrentPage("dashboard");
     setContactOptions([]);
     setDealOptions([]);
     setDealContactInput("");
@@ -995,507 +910,87 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div>
-          <p className="tag">Atlas CRM</p>
-          <h1>Welcome back, {auth.user?.first_name || "Operator"}.</h1>
-          <p className="subtitle">
-            Manage contacts, deals, and predictive insights from one workspace.
-          </p>
-        </div>
-        <div className="topbar-actions">
-          <div className="identity">
-            <span>{auth.user?.email}</span>
-            <span className="role">{auth.user?.role}</span>
-          </div>
-          <button className="ghost" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
-      </header>
-
+    <Layout
+      auth={auth}
+      onLogout={handleLogout}
+      currentPage={currentPage}
+      onNavigate={setCurrentPage}
+    >
       {actionStatus.message ? (
         <div className={`banner ${actionStatus.tone}`}>
           {actionStatus.message}
         </div>
       ) : null}
 
-      <section className="overview">
-        <div className="card">
-          <h3>Contacts</h3>
-          <p className="metric">{overview.contacts}</p>
-          <span className="muted">Total tracked in CRM</span>
-        </div>
-        <div className="card">
-          <h3>Deals</h3>
-          <p className="metric">{overview.deals}</p>
-          <span className="muted">Active pipeline items</span>
-        </div>
-        <div className="card">
-          <h3>Tasks</h3>
-          <p className="metric">{overview.tasks}</p>
-          <span className="muted">For selected deal</span>
-        </div>
-      </section>
-
-      <section className="grid-main">
-        <div className="panel">
-          <h2>Contacts</h2>
-          <p className="muted">
-            Recently updated contacts and ownership context.
-          </p>
-          <div className="table">
-            <div className="table-row header">
-              <span>Name</span>
-              <span>Email</span>
-              <span>Owner</span>
-            </div>
-            {contacts.length === 0 ? (
-              <div className="table-row empty">No contacts yet.</div>
-            ) : (
-              contacts.map((contact) => (
-                <div className="table-row" key={contact.id}>
-                  <span>{contact.name}</span>
-                  <span>{contact.email}</span>
-                  <span>{contact.owner_name || contact.owner_id}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="panel">
-          <h2>Deals</h2>
-          <p className="muted">
-            Pipeline momentum and expected close dates.
-          </p>
-          <div className="table">
-            <div className="table-row header">
-              <span>Deal</span>
-              <span>Stage</span>
-              <span>Close</span>
-            </div>
-            {deals.length === 0 ? (
-              <div className="table-row empty">No deals yet.</div>
-            ) : (
-              deals.map((deal) => (
-                <div className="table-row" key={deal.id}>
-                  <span>{deal.name}</span>
-                  <span>{deal.stage}</span>
-                  <span>{deal.expected_close_date || "-"}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid-actions">
-        <div className="panel">
-          <h2>New Contact</h2>
-          <form onSubmit={createContact} className="form-stack">
-            <div className="grid-two">
-              <label>
-                First name
-                <input
-                  type="text"
-                  value={contactForm.first_name}
-                  onChange={(event) =>
-                    setContactForm((prev) => ({
-                      ...prev,
-                      first_name: event.target.value
-                    }))
-                  }
-                  required
-                />
-              </label>
-              <label>
-                Last name
-                <input
-                  type="text"
-                  value={contactForm.last_name}
-                  onChange={(event) =>
-                    setContactForm((prev) => ({
-                      ...prev,
-                      last_name: event.target.value
-                    }))
-                  }
-                  required
-                />
-              </label>
-            </div>
-            <label>
-              Email
-              <input
-                type="email"
-                value={contactForm.email}
-                onChange={(event) =>
-                  setContactForm((prev) => ({
-                    ...prev,
-                    email: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <label>
-              Phone
-              <input
-                type="text"
-                value={contactForm.phone}
-                onChange={(event) =>
-                  setContactForm((prev) => ({
-                    ...prev,
-                    phone: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <button className="primary" type="submit">
-              Create contact
-            </button>
-          </form>
-        </div>
-
-        <div className="panel">
-          <h2>New Deal</h2>
-          <form onSubmit={createDeal} className="form-stack">
-            <label>
-              Deal name
-              <input
-                type="text"
-                value={dealForm.name}
-                onChange={(event) =>
-                  setDealForm((prev) => ({
-                    ...prev,
-                    name: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <div className="grid-two">
-              <label>
-                Stage
-                <select
-                  value={dealForm.stage}
-                  onChange={(event) =>
-                    setDealForm((prev) => ({
-                      ...prev,
-                      stage: event.target.value
-                    }))
-                  }
-                >
-                  <option value="prospect">Prospect</option>
-                  <option value="qualified">Qualified</option>
-                  <option value="proposal">Proposal</option>
-                  <option value="negotiation">Negotiation</option>
-                  <option value="won">Won</option>
-                  <option value="lost">Lost</option>
-                </select>
-              </label>
-              <label>
-                Value
-                <input
-                  type="number"
-                  value={dealForm.value}
-                  onChange={(event) =>
-                    setDealForm((prev) => ({
-                      ...prev,
-                      value: event.target.value
-                    }))
-                  }
-                  min="0"
-                  step="0.01"
-                />
-              </label>
-            </div>
-            <label>
-              Expected close date
-              <input
-                type="date"
-                value={dealForm.expected_close_date}
-                onChange={(event) =>
-                  setDealForm((prev) => ({
-                    ...prev,
-                    expected_close_date: event.target.value
-                  }))
-                }
-              />
-            </label>
-            <SearchablePicker
-              label="Contact ID"
-              placeholder="Click to view contacts, or type to search"
-              options={contactOptions}
-              selectedValue={dealForm.contact_id}
-              inputValue={dealContactInput}
-              onInputValueChange={setDealContactInput}
-              onSelectValue={(value) =>
-                setDealForm((prev) => ({
-                  ...prev,
-                  contact_id: value
-                }))
-              }
-              formatOption={formatContactOption}
-              searchOption={searchContactOption}
-            />
-            <button className="primary" type="submit">
-              Create deal
-            </button>
-          </form>
-        </div>
-
-        <div className="panel">
-          <h2>Tasks & Notes</h2>
-          <form onSubmit={createTask} className="form-stack">
-            <SearchablePicker
-              label="Contact ID (for tasks & notes)"
-              placeholder="Click to view contacts, or type to search"
-              options={contactOptions}
-              selectedValue={noteForm.contact_id}
-              inputValue={noteContactInput}
-              onInputValueChange={setNoteContactInput}
-              onSelectValue={(value) => {
-                setNoteForm((prev) => ({
-                  ...prev,
-                  contact_id: value
-                }));
-                setTaskForm((prev) => ({
-                  ...prev,
-                  deal_id: ""
-                }));
-                setTaskDealInput("");
-              }}
-              formatOption={formatContactOption}
-              searchOption={searchContactOption}
-            />
-            <SearchablePicker
-              label="Deal ID (for tasks)"
-              placeholder={
-                noteForm.contact_id
-                  ? "Click to view deals, or type to search"
-                  : "Select contact first"
-              }
-              options={taskDealOptions}
-              selectedValue={taskForm.deal_id}
-              inputValue={taskDealInput}
-              onInputValueChange={setTaskDealInput}
-              onSelectValue={(value) =>
-                setTaskForm((prev) => ({
-                  ...prev,
-                  deal_id: value
-                }))
-              }
-              formatOption={formatDealOption}
-              searchOption={searchDealOption}
-              emptyText={
-                noteForm.contact_id
-                  ? "No deals found for this contact"
-                  : "Select contact first"
-              }
-              disabled={!noteForm.contact_id}
-            />
-            <button
-              className="ghost"
-              type="button"
-              onClick={() => fetchTasks(taskForm.deal_id)}
-            >
-              Load tasks for deal
-            </button>
-            <label>
-              Task title
-              <input
-                type="text"
-                value={taskForm.title}
-                onChange={(event) =>
-                  setTaskForm((prev) => ({
-                    ...prev,
-                    title: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <label>
-              Due date
-              <input
-                type="date"
-                value={taskForm.due_date}
-                onChange={(event) =>
-                  setTaskForm((prev) => ({
-                    ...prev,
-                    due_date: event.target.value
-                  }))
-                }
-              />
-            </label>
-            <label>
-              Assigned to (user ID)
-              <input
-                type="text"
-                value={taskForm.assigned_to_id}
-                onChange={(event) =>
-                  setTaskForm((prev) => ({
-                    ...prev,
-                    assigned_to_id: event.target.value
-                  }))
-                }
-              />
-            </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={taskForm.is_completed}
-                onChange={(event) =>
-                  setTaskForm((prev) => ({
-                    ...prev,
-                    is_completed: event.target.checked
-                  }))
-                }
-              />
-              Mark complete
-            </label>
-            <button className="primary" type="submit">
-              Create task
-            </button>
-          </form>
-
-          <div className="divider" />
-
-          <form onSubmit={addNote} className="form-stack">
-            <label>
-              Note content
-              <textarea
-                rows="3"
-                value={noteForm.content}
-                onChange={(event) =>
-                  setNoteForm((prev) => ({
-                    ...prev,
-                    content: event.target.value
-                  }))
-                }
-                required
-              />
-            </label>
-            <button className="primary" type="submit">
-              Add note
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <section className="grid-actions">
-        <div className="panel">
-          <h2>Insight Engine</h2>
-          <p className="muted">
-            Trigger scoring requests routed through the edge service.
-          </p>
-          <form onSubmit={runLeadScore} className="form-stack">
-            <SearchablePicker
-              label="Lead ID"
-              placeholder="Click to view contacts, or type to search"
-              options={contactOptions}
-              selectedValue={insightForm.lead_id}
-              inputValue={insightLeadInput}
-              onInputValueChange={setInsightLeadInput}
-              onSelectValue={(value) =>
-                setInsightForm((prev) => ({
-                  ...prev,
-                  lead_id: value
-                }))
-              }
-              formatOption={formatContactOption}
-              searchOption={searchContactOption}
-              required
-            />
-            <button className="primary" type="submit">
-              Run lead score
-            </button>
-          </form>
-          <div className="divider" />
-          <form onSubmit={runChurnScore} className="form-stack">
-            <SearchablePicker
-              label="Contact ID"
-              placeholder="Click to view contacts, or type to search"
-              options={contactOptions}
-              selectedValue={insightForm.contact_id}
-              inputValue={insightContactInput}
-              onInputValueChange={setInsightContactInput}
-              onSelectValue={(value) =>
-                setInsightForm((prev) => ({
-                  ...prev,
-                  contact_id: value
-                }))
-              }
-              formatOption={formatContactOption}
-              searchOption={searchContactOption}
-              required
-            />
-            <button className="primary" type="submit">
-              Run churn score
-            </button>
-          </form>
-          <form onSubmit={runClv} className="form-stack">
-            <button className="ghost" type="submit">
-              Calculate CLV
-            </button>
-          </form>
-        </div>
-
-        <div className="panel">
-          <h2>Security & API Keys</h2>
-          <p className="muted">
-            Create a backend API key to use `/v1/token` for service-to-service
-            sessions.
-          </p>
-          <button className="primary" onClick={createApiKey}>
-            Create API key
-          </button>
-          {apiKeyResponse ? (
-            <div className="key-result">
-              <div>
-                <strong>API Key ID:</strong> {apiKeyResponse.id}
-              </div>
-              <div>
-                <strong>User ID:</strong> {apiKeyResponse.user_id}
-              </div>
-              <div>
-                <strong>Created:</strong> {formatTimestamp(apiKeyResponse.created_at)}
-              </div>
-            </div>
-          ) : null}
-          <div className="divider" />
-          <h3>Active tasks</h3>
-          <div className="table">
-            <div className="table-row header">
-              <span>Title</span>
-              <span>Due</span>
-              <span>Status</span>
-            </div>
-            {activeDealTasks.length === 0 ? (
-              <div className="table-row empty">No tasks loaded.</div>
-            ) : (
-              activeDealTasks.map((task) => (
-                <div className="table-row" key={task.id}>
-                  <span>{task.title}</span>
-                  <span>{formatTimestamp(task.due_date)}</span>
-                  <span>{task.is_completed ? "Done" : "Open"}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      <footer className="footer">
-        <span>Edge URL: {EDGE_BASE_URL}</span>
-        <button className="ghost" onClick={refreshOverview}>
-          Refresh data
-        </button>
-      </footer>
-    </div>
+      {currentPage === "dashboard" && <Dashboard overview={overview} />}
+      {currentPage === "contacts" && (
+        <ContactsPage
+          contacts={contacts}
+          contactForm={contactForm}
+          setContactForm={setContactForm}
+          createContact={createContact}
+        />
+      )}
+      {currentPage === "deals" && (
+        <DealsPage
+          deals={deals}
+          dealForm={dealForm}
+          setDealForm={setDealForm}
+          createDeal={createDeal}
+          contactOptions={contactOptions}
+          dealContactInput={dealContactInput}
+          setDealContactInput={setDealContactInput}
+          formatContactOption={formatContactOption}
+          searchContactOption={searchContactOption}
+        />
+      )}
+      {currentPage === "tasks" && (
+        <TasksPage
+          taskForm={taskForm}
+          setTaskForm={setTaskForm}
+          createTask={createTask}
+          noteForm={noteForm}
+          setNoteForm={setNoteForm}
+          addNote={addNote}
+          contactOptions={contactOptions}
+          noteContactInput={noteContactInput}
+          setNoteContactInput={setNoteContactInput}
+          taskDealOptions={taskDealOptions}
+          taskDealInput={taskDealInput}
+          setTaskDealInput={setTaskDealInput}
+          fetchTasks={fetchTasks}
+          activeDealTasks={activeDealTasks}
+          formatContactOption={formatContactOption}
+          searchContactOption={searchContactOption}
+          formatDealOption={formatDealOption}
+          searchDealOption={searchDealOption}
+          formatTimestamp={formatTimestamp}
+        />
+      )}
+      {currentPage === "insights" && (
+        <InsightsPage
+          insightForm={insightForm}
+          setInsightForm={setInsightForm}
+          runLeadScore={runLeadScore}
+          runChurnScore={runChurnScore}
+          runClv={runClv}
+          contactOptions={contactOptions}
+          insightLeadInput={insightLeadInput}
+          setInsightLeadInput={setInsightLeadInput}
+          insightContactInput={insightContactInput}
+          setInsightContactInput={setInsightContactInput}
+          formatContactOption={formatContactOption}
+          searchContactOption={searchContactOption}
+        />
+      )}
+      {currentPage === "settings" && (
+        <SettingsPage
+          createApiKey={createApiKey}
+          apiKeyResponse={apiKeyResponse}
+          formatTimestamp={formatTimestamp}
+        />
+      )}
+    </Layout>
   );
 }
 

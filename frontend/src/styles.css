@@ -12,6 +12,7 @@
   --shadow: 0 18px 40px rgba(30, 20, 10, 0.12);
   --radius: 18px;
   --radius-soft: 12px;
+  --sidebar-width: 260px;
   font-family: "Space Grotesk", system-ui, sans-serif;
 }
 
@@ -41,14 +42,94 @@ p {
 
 .app-shell {
   min-height: 100vh;
-  padding: 48px 6vw 64px;
 }
 
+/* Layout */
+.layout-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--panel);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+
+.sidebar-header {
+  margin-bottom: 32px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-soft);
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: none;
+}
+
+.nav-item:hover {
+  background: rgba(31, 111, 120, 0.08);
+  color: var(--teal);
+}
+
+.nav-item.active {
+  background: rgba(31, 111, 120, 0.12);
+  color: var(--teal);
+  font-weight: 600;
+}
+
+.nav-icon {
+  font-size: 18px;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.content-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 48px;
+}
+
+/* Existing Styles */
 .hero {
   display: flex;
   align-items: flex-end;
   gap: 24px;
   margin-bottom: 32px;
+  padding: 48px 6vw 0;
 }
 
 .tag {
@@ -71,6 +152,7 @@ p {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
   margin-top: 24px;
+  padding: 0 6vw 64px;
 }
 
 .panel {
@@ -132,6 +214,7 @@ p {
   background: #fff;
   color: var(--ink);
   font-weight: 500;
+  box-shadow: none;
 }
 
 .contact-option:hover {
@@ -197,6 +280,7 @@ button.ghost {
   background: transparent;
   color: var(--teal);
   border: 1px solid rgba(31, 111, 120, 0.3);
+  box-shadow: none;
 }
 
 button.ghost:hover {
@@ -237,6 +321,7 @@ button.ghost:hover {
 .auth-footer {
   margin-top: 24px;
   color: var(--muted);
+  padding: 0 6vw;
 }
 
 .auth-footer span {
@@ -246,29 +331,49 @@ button.ghost:hover {
 .topbar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.topbar-actions {
-  display: flex;
   align-items: center;
-  gap: 16px;
+  padding: 24px 48px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  margin-bottom: 0;
 }
 
 .identity {
   display: flex;
-  flex-direction: column;
-  text-align: right;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
   font-size: 14px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
 }
 
 .identity .role {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  font-size: 11px;
+  font-size: 10px;
+}
+
+.logout-btn {
+  width: 100%;
+  text-align: center;
 }
 
 .overview {
@@ -371,33 +476,34 @@ button.ghost:hover {
 }
 
 @media (max-width: 900px) {
-  .topbar {
+  .layout-container {
     flex-direction: column;
-    align-items: flex-start;
+    height: auto;
+    overflow: visible;
   }
 
-  .topbar-actions {
+  .sidebar {
     width: 100%;
-    justify-content: space-between;
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 16px;
   }
 
-  .identity {
-    text-align: left;
-  }
-}
-
-@media (max-width: 600px) {
-  .app-shell {
-    padding: 32px 6vw 48px;
+  .sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
   }
 
-  .table-row {
-    grid-template-columns: 1fr;
-    gap: 4px;
+  .nav-item {
+    white-space: nowrap;
   }
 
-  .footer {
-    flex-direction: column;
-    align-items: flex-start;
+  .main-content {
+    overflow: visible;
+  }
+
+  .content-scroll {
+    padding: 24px;
   }
 }
